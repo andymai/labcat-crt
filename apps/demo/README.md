@@ -11,7 +11,7 @@ combinations, so baselines must be regenerated from the same environment
 they will run in.
 
 Snapshots are canonical for the Playwright Docker image
-(`mcr.microsoft.com/playwright:v1.49.1-jammy`). Running `pnpm test`
+(`mcr.microsoft.com/playwright:v1.55.1-jammy`). Running `pnpm test`
 locally outside that image will produce false-positive failures from
 font-rendering jitter. Use `pnpm test:visual` from the repo root only
 in Docker or in CI; expect local diffs otherwise.
@@ -29,7 +29,7 @@ For CI parity, do this inside the official Playwright Docker image:
 
 ```
 docker run --rm -it -v "$(pwd):/work" -w /work/apps/demo \
-  mcr.microsoft.com/playwright:v1.49.1-jammy \
+  mcr.microsoft.com/playwright:v1.55.1-jammy \
   pnpm test:update
 ```
 

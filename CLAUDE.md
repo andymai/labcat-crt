@@ -91,13 +91,13 @@ Both must pass. Adding a runtime dep means re-justifying both numbers; prefer CS
 
 ### Visual snapshots are Linux-canonical
 
-Sub-pixel CSS effects (scanlines, halation, phosphor noise SVG) rasterize differently across font renderers, so `apps/demo/tests/presets.spec.ts-snapshots/` is locked to the Playwright Docker image (`mcr.microsoft.com/playwright:v1.49.1-jammy`). `playwright.config.ts` pins `maxDiffPixelRatio: 0.02` to tolerate font jitter while still catching real regressions, and `.gitignore` excludes `__snapshots__/macos/` and `__snapshots__/windows/` so out-of-band baselines can't leak in.
+Sub-pixel CSS effects (scanlines, halation, phosphor noise SVG) rasterize differently across font renderers, so `apps/demo/tests/presets.spec.ts-snapshots/` is locked to the Playwright Docker image (`mcr.microsoft.com/playwright:v1.55.1-jammy`). `playwright.config.ts` pins `maxDiffPixelRatio: 0.02` to tolerate font jitter while still catching real regressions, and `.gitignore` excludes `__snapshots__/macos/` and `__snapshots__/windows/` so out-of-band baselines can't leak in.
 
 Regenerating baselines:
 
 ```
 docker run --rm -it -v "$(pwd):/work" -w /work/apps/demo \
-  mcr.microsoft.com/playwright:v1.49.1-jammy \
+  mcr.microsoft.com/playwright:v1.55.1-jammy \
   pnpm test:update
 ```
 
