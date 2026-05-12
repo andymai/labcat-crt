@@ -38,6 +38,12 @@ jobs:
       - name: build
         run: pnpm build
 
+      # Vitest browser provider launches the Chromium that ships with playwright.
+      # ubuntu-latest doesn't cache the browser binary across runs, and pnpm's
+      # frozen install skips playwright's postinstall, so download it explicitly.
+      - name: install playwright chromium
+        run: pnpm --filter @labcat/crt exec playwright install chromium --with-deps
+
       - name: test
         run: pnpm --filter @labcat/crt test
 
