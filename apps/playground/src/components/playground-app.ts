@@ -38,12 +38,38 @@ const SLIDERS: readonly SliderSpec[] = [
   { key: 'saturate', var: '--crt-gamma-saturate', label: 'saturate', min: 0, max: 1.5, step: 0.01 },
 ] as const;
 
-type LayerKey = 'scanlines' | 'grille' | 'noise';
+type LayerKey = 'scanlines' | 'grille';
 const LAYERS: readonly { key: LayerKey; var: string; label: string }[] = [
   { key: 'scanlines', var: '--crt-scanlines', label: 'scanlines' },
   { key: 'grille', var: '--crt-grille', label: 'aperture grille' },
-  { key: 'noise', var: '--crt-noise', label: 'phosphor noise' },
 ] as const;
+
+/*
+ * Noise gets its own slider rather than a checkbox: the SVG turbulence at
+ * preset-default alpha (2.5% – 4%) is real but barely perceptible against
+ * scanlines + grille, so a binary toggle gives the impression nothing
+ * happened. The slider amplifies up to 0.2 so the noise pattern becomes
+ * obviously visible, and runs down to 0 for the "off" position.
+ *
+ * The library bakes alpha into the SVG data URL, so the playground generates
+ * its own SVG client-side with the user's chosen alpha when overriding.
+ */
+const NOISE_MAX = 0.2;
+const NOISE_STEP = 0.005;
+const NOISE_ALPHA_RE = /0 0 0 (\d*\.?\d+) 0\s*'\s*\/\s*>\s*<rect/;
+
+function buildNoiseSvgUrl(alpha: number): string {
+  const a = alpha.toFixed(3);
+  return `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 ${a} 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")`;
+}
+
+function readPresetNoiseAlpha(overlay: HTMLElement): number {
+  const raw = getComputedStyle(overlay).getPropertyValue('--crt-noise').trim();
+  const match = raw.match(NOISE_ALPHA_RE);
+  if (!match) return 0.03;
+  const parsed = Number.parseFloat(match[1] ?? '');
+  return Number.isFinite(parsed) ? parsed : 0.03;
+}
 
 @customElement('playground-app')
 export class PlaygroundApp extends LitElement {
@@ -55,8 +81,10 @@ export class PlaygroundApp extends LitElement {
   @state() private layersOff: Record<LayerKey, boolean> = {
     scanlines: false,
     grille: false,
-    noise: false,
   };
+
+  @state() private noiseAlpha = 0.03;
+  @state() private noiseOverridden = false;
 
   @state() private sliderValues: Record<SliderSpec['key'], number> = {
     contrast: 1,
@@ -107,6 +135,9 @@ export class PlaygroundApp extends LitElement {
       if (Number.isFinite(parsed)) next[s.key] = parsed;
     }
     this.sliderValues = next;
+    if (!this.noiseOverridden) {
+      this.noiseAlpha = readPresetNoiseAlpha(this.#overlay);
+    }
   }
 
   override updated(changed: Map<string, unknown>): void {
@@ -119,7 +150,9 @@ export class PlaygroundApp extends LitElement {
       changed.has('sliderValues') ||
       changed.has('overrides') ||
       changed.has('glowColorEnabled') ||
-      changed.has('glowColor')
+      changed.has('glowColor') ||
+      changed.has('noiseAlpha') ||
+      changed.has('noiseOverridden')
     ) {
       this.#applyAll();
     }
@@ -150,6 +183,15 @@ export class PlaygroundApp extends LitElement {
     }
     if (this.glowColorEnabled) o.style.setProperty('--crt-glow-color', this.glowColor);
     else o.style.removeProperty('--crt-glow-color');
+
+    if (this.noiseOverridden) {
+      o.style.setProperty(
+        '--crt-noise',
+        this.noiseAlpha <= 0 ? 'none' : buildNoiseSvgUrl(this.noiseAlpha),
+      );
+    } else {
+      o.style.removeProperty('--crt-noise');
+    }
   }
 
   #setSlider(spec: SliderSpec, value: number): void {
@@ -184,9 +226,23 @@ export class PlaygroundApp extends LitElement {
 
   #resetOverrides(): void {
     this.overrides = new Set();
-    this.layersOff = { scanlines: false, grille: false, noise: false };
+    this.layersOff = { scanlines: false, grille: false };
     this.glowColorEnabled = false;
+    this.noiseOverridden = false;
     requestAnimationFrame(() => this.#readSliderDefaults());
+  }
+
+  #setNoiseAlpha(value: number): void {
+    this.noiseAlpha = value;
+    this.noiseOverridden = true;
+  }
+
+  #resetNoise(): void {
+    if (!this.noiseOverridden) return;
+    this.noiseOverridden = false;
+    requestAnimationFrame(() => {
+      if (this.#overlay) this.noiseAlpha = readPresetNoiseAlpha(this.#overlay);
+    });
   }
 
   #buildExport(): string {
@@ -202,6 +258,13 @@ export class PlaygroundApp extends LitElement {
       if (this.overrides.has(s.var)) styleParts.push(`${s.var}: ${this.sliderValues[s.key]}`);
     }
     if (this.glowColorEnabled) styleParts.push(`--crt-glow-color: ${this.glowColor}`);
+    if (this.noiseOverridden) {
+      styleParts.push(
+        this.noiseAlpha <= 0
+          ? '--crt-noise: none'
+          : `--crt-noise: ${buildNoiseSvgUrl(this.noiseAlpha)}`,
+      );
+    }
 
     const styleAttr = styleParts.length > 0 ? ` style="${styleParts.join('; ')}"` : '';
     const slotted = this.fullscreen ? '' : '\n  …your content…\n';
@@ -340,6 +403,46 @@ export class PlaygroundApp extends LitElement {
               </label>
             `,
           )}
+        </section>
+
+        <section class="group">
+          <h2>Phosphor noise</h2>
+          <label class="slider">
+            <span class="slider-label">
+              <span>alpha</span>
+              <span class="value-cluster">
+                <button
+                  type="button"
+                  class="reset-btn"
+                  title="reset to preset default"
+                  aria-label="reset noise alpha to preset default"
+                  ?hidden=${!this.noiseOverridden}
+                  @click=${(e: Event) => {
+                    e.preventDefault();
+                    this.#resetNoise();
+                  }}
+                >
+                  ↻
+                </button>
+                <span class="value">${this.noiseAlpha.toFixed(3)}</span>
+              </span>
+            </span>
+            <input
+              type="range"
+              min="0"
+              max=${NOISE_MAX}
+              step=${NOISE_STEP}
+              .value=${String(this.noiseAlpha)}
+              @input=${(e: Event) => {
+                const v = Number.parseFloat((e.target as HTMLInputElement).value);
+                this.#setNoiseAlpha(v);
+              }}
+            />
+          </label>
+          <p class="hint">
+            Preset defaults sit at 0.025–0.040 — authentic but easy to miss. Slide right to
+            amplify the grain or down to 0 for none.
+          </p>
         </section>
 
         <section class="group">
@@ -528,6 +631,12 @@ export class PlaygroundApp extends LitElement {
     .slider input[type='range'] {
       width: 100%;
       accent-color: #d5d5d5;
+    }
+    .hint {
+      margin: 0.35rem 0 0;
+      font-size: 0.7rem;
+      line-height: 1.5;
+      opacity: 0.5;
     }
 
     .color-row {
