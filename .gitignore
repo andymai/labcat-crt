@@ -8,10 +8,6 @@ dist/
 .env
 .env.local
 coverage/
-playwright-report/
-test-results/
-__snapshots__/macos/
-__snapshots__/windows/
 __screenshots__/
 .vscode/*
 !.vscode/extensions.json
