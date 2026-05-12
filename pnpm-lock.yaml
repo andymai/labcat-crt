@@ -27,28 +27,6 @@ importers:
         specifier: ^5.7.3
         version: 5.9.3
 
-  apps/demo:
-    dependencies:
-      '@labcat/crt':
-        specifier: workspace:^
-        version: link:../../packages/core
-      astro:
-        specifier: ^6.1.6
-        version: 6.3.1(@types/node@22.19.19)(jiti@2.7.0)(rollup@4.60.3)(yaml@2.9.0)
-    devDependencies:
-      '@astrojs/check':
-        specifier: ^0.9.9
-        version: 0.9.9(prettier@3.8.3)(typescript@5.9.3)
-      '@playwright/test':
-        specifier: 1.49.1
-        version: 1.49.1
-      '@types/node':
-        specifier: ^22.10.0
-        version: 22.19.19
-      typescript:
-        specifier: ^5.7.3
-        version: 5.9.3
-
   apps/playground:
     dependencies:
       '@labcat/crt':
@@ -773,11 +751,6 @@ packages:
 
   '@oslojs/encoding@1.1.0':
     resolution: {integrity: sha512-70wQhgYmndg4GCPxPPxPGevRKqTIJ2Nh4OkiMWmDAVYsTQ+Ta7Sq+rPevXyXGdzr30/qZBnyOalCszoMxlyldQ==}
-
-  '@playwright/test@1.49.1':
-    resolution: {integrity: sha512-Ky+BVzPz8pL6PQxHqNRW1k3mIyv933LML7HktS8uik0bUXNCdPhoS/kLihiO1tMf/egaJb4IutXd7UywvXEW+g==}
-    engines: {node: '>=18'}
-    hasBin: true
 
   '@polka/url@1.0.0-next.29':
     resolution: {integrity: sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww==}
@@ -3330,10 +3303,6 @@ snapshots:
       lit-html: 3.3.2
 
   '@oslojs/encoding@1.1.0': {}
-
-  '@playwright/test@1.49.1':
-    dependencies:
-      playwright: 1.49.1
 
   '@polka/url@1.0.0-next.29': {}
 

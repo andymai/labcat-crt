@@ -6,9 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 pnpm + Turbo monorepo. Node ≥ 22.12, pnpm 10.33.0 (pinned via `packageManager`). Two workspaces:
 
-- `packages/core` — `@labcat/crt`, the publishable Lit web component. Vite library build → ESM only, Lit external. Vitest in real Chromium (Playwright provider, `browser.enabled: true`) — there is no JSDOM path.
-- `apps/demo` — `@labcat/crt-demo`, an Astro site that hosts one route per preset (`/pvm/`, `/consumer/`, `/amber/`, `/green/`, `/p4-white/`) plus a gallery at `/`. Used as the host page for Playwright visual snapshot tests. Consumes core via `workspace:^`. **Don't add interactive routes here** — the routes are snapshot-locked and identical content is what makes preset diffs meaningful.
-- `apps/playground` — `@labcat/crt-playground`, an Astro site with a single interactive page (`<playground-app>` Lit component) deployed to GitHub Pages at `https://andymai.github.io/labcat-crt/`. Astro `base: '/labcat-crt'` is critical — without it, asset URLs 404 under the subpath. No snapshot tests; UI is dynamic by design.
+- `packages/core` — `@labcat/crt`, the publishable Lit web component. Vite library build → ESM only, Lit external. Vitest in real Chromium (Playwright provider, `browser.enabled: true`) — there is no JSDOM path. The `playwright` dep here is solely to launch the vitest browser; it is not used for visual snapshots.
+- `apps/playground` — `@labcat/crt-playground`, an Astro site with a single interactive page (`<playground-app>` Lit component) deployed to GitHub Pages at `https://andymai.github.io/labcat-crt/`. Astro `base: '/labcat-crt'` is critical — without it, asset URLs 404 under the subpath.
 
 ## Commands
 
@@ -17,12 +16,11 @@ All commands run from the repo root unless noted. Turbo handles cross-package or
 ```
 pnpm install              # frozen-lockfile in CI; never use --no-frozen-lockfile to "fix" lockfile drift
 pnpm build                # vite + tsc + cem analyze (prebuild) across the graph
-pnpm dev                  # core: vite watch; demo: astro dev. persistent task.
-pnpm typecheck            # tsc --noEmit (core) + astro check (demo)
+pnpm dev                  # core: vite watch; playground: astro dev. persistent task.
+pnpm typecheck            # tsc --noEmit (core) + astro check (playground)
 pnpm lint                 # biome check (no auto-fix)
 pnpm lint:fix             # biome check --write
 pnpm test                 # vitest in core only (filtered)
-pnpm test:visual          # playwright in demo only (filtered) — requires Linux for canonical baselines
 pnpm cem                  # regenerate packages/core/custom-elements.json
 pnpm size                 # size-limit budgets on packages/core/dist
 ```
@@ -33,10 +31,6 @@ Single-test workflows (run from inside the package):
 # core unit/component tests
 cd packages/core && pnpm vitest run test/fullscreen-refcount.test.ts
 cd packages/core && pnpm vitest run -t "publishes halation vars"   # by test name
-
-# demo visual snapshots
-cd apps/demo && pnpm playwright test tests/presets.spec.ts -g "pvm preset snapshot"
-cd apps/demo && pnpm test:update                                   # regenerate baselines
 ```
 
 Pre-commit (Husky): `lint-staged` (biome --write on changed files) + full `pnpm typecheck`. Don't bypass with `--no-verify` — typecheck failures here usually mean the cem manifest or build outputs are stale.
@@ -47,7 +41,7 @@ Pre-commit (Husky): `lint-staged` (biome --write on changed files) + full `pnpm 
 
 `<crt-overlay>` (`packages/core/src/crt-overlay.ts`) is the entire public surface. Three reflected attributes:
 
-- `preset` — switches a block of CSS variable assignments in `styles/presets.ts`. Five archetypes (`pvm`, `consumer`, `amber`, `green`, `p4-white`). Adding a preset means: (a) extending the `CrtPreset` union in `crt-overlay.ts`, (b) adding a `:host([preset='...'])` block in `presets.ts`, (c) adding a route in `apps/demo/src/pages/`, (d) adding it to the snapshot test loop in `apps/demo/tests/presets.spec.ts`. The CSS-var system is the extension surface — never add per-effect boolean attributes (`enable-grille`, `enable-noise`, …); consumers already disable individual layers with `style="--crt-grille: none"`.
+- `preset` — switches a block of CSS variable assignments in `styles/presets.ts`. Five archetypes (`pvm`, `consumer`, `amber`, `green`, `p4-white`). Adding a preset means: (a) extending the `CrtPreset` union in `crt-overlay.ts`, (b) adding a `:host([preset='...'])` block in `presets.ts`. The playground's preset picker reads `PRESETS` in `apps/playground/src/components/playground-app.ts` — keep that union list in sync. The CSS-var system is the extension surface — never add per-effect boolean attributes (`enable-grille`, `enable-noise`, …); consumers already disable individual layers with `style="--crt-grille: none"`.
 - `fullscreen` — `position: fixed; inset: 0` covering the viewport, slot hidden. Triggers the halation refcount described below.
 - `disabled` — pauses animations without unmounting. Halation vars unpublish.
 
@@ -89,20 +83,6 @@ The package ships as ESM only with `lit` and `lit/*` marked external. Don't add 
 
 Both must pass. Adding a runtime dep means re-justifying both numbers; prefer CSS-var configurability or moving logic to a peer-provided stylesheet.
 
-### Visual snapshots are Linux-canonical
-
-Sub-pixel CSS effects (scanlines, halation, phosphor noise SVG) rasterize differently across font renderers, so `apps/demo/tests/presets.spec.ts-snapshots/` is locked to the Playwright Docker image (`mcr.microsoft.com/playwright:v1.49.1-jammy`). `playwright.config.ts` pins `maxDiffPixelRatio: 0.02` to tolerate font jitter while still catching real regressions, and `.gitignore` excludes `__snapshots__/macos/` and `__snapshots__/windows/` so out-of-band baselines can't leak in.
-
-Regenerating baselines:
-
-```
-docker run --rm -it -v "$(pwd):/work" -w /work/apps/demo \
-  mcr.microsoft.com/playwright:v1.49.1-jammy \
-  pnpm test:update
-```
-
-Running `pnpm test:visual` locally outside that image will produce failing diffs from font rendering — don't commit those snapshots. The `Snapshots` GitHub workflow runs only when files under `packages/core/src`, `apps/demo/src`, the test dir, or the playwright/workflow configs change.
-
 ## TypeScript config
 
 `tsconfig.base.json` is strict including `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, and `verbatimModuleSyntax`. Decorators are enabled (`experimentalDecorators: true`, `useDefineForClassFields: false`) because Lit uses legacy decorator semantics — don't switch to TC39 decorators without verifying Lit support. Vitest's esbuild config in `packages/core/vitest.config.ts` mirrors these settings so test-time and build-time decorator behavior match.
@@ -113,7 +93,9 @@ Biome 1.9.4 handles both. Single quotes, semicolons, trailing commas, 100-col, 2
 
 ## CI
 
-`.github/workflows/ci.yml` runs on push to `main` and on PRs: install → lint → typecheck → build → core tests → size budget. `snapshots.yml` runs visual tests in the official Playwright container, conditional on relevant paths changing. `pages.yml` builds `apps/playground` and deploys it to GitHub Pages on push to `main` (or `workflow_dispatch`); uses OIDC-based `actions/deploy-pages` (`permissions: pages: write`, `id-token: write`) — no `gh-pages` branch involved. All three workflows pin pnpm 10.33.0 + Node 22.12; keep these aligned with the root `package.json`'s `packageManager` and `engines` fields.
+`.github/workflows/ci.yml` runs on push to `main` and on PRs: install → lint → typecheck → build → core tests → size budget. `pages.yml` builds `apps/playground` and deploys it to GitHub Pages on push to `main` (or `workflow_dispatch`); uses OIDC-based `actions/deploy-pages` (`permissions: pages: write`, `id-token: write`) — no `gh-pages` branch involved. Both workflows pin pnpm 10.33.0 + Node 22.12; keep these aligned with the root `package.json`'s `packageManager` and `engines` fields.
+
+Visual snapshot regression testing was removed deliberately — at this stage of the project, snapshot drift would mostly flag preset tuning rather than real regressions, and the Playwright Docker image baseline was heavy CI for the value. The playground is the visual sanity-check surface. To reintroduce: restore an Astro snapshot host workspace, baselines under it, and a workflow using `mcr.microsoft.com/playwright:v<n>-jammy` with the version pinned to whatever vitest browser ships with so binaries stay in sync.
 
 ## Playground architecture
 

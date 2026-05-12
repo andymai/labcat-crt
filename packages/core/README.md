@@ -11,7 +11,7 @@ green, P4 white-phosphor PC monitor.
 - Halation is opt-in per element, not per container. Tag bright text with
   `class="crt-glow"`; everything else gets only the structural overlay.
 - Respects `prefers-reduced-motion`, `forced-colors`, and `print`.
-- 31 vitest specs + Playwright snapshot lock per preset.
+- Real-browser vitest specs (no JSDOM).
 
 ## Install
 
@@ -186,10 +186,8 @@ pnpm size        # size-limit budgets
 pnpm cem         # regenerate custom-elements.json
 ```
 
-Demo site lives at `../../apps/demo`. Playwright snapshot baselines are
-checked into `apps/demo/tests/presets.spec.ts-snapshots/` and are
-canonical on Linux only; see `apps/demo/README.md` for the Docker
-regeneration recipe.
+Playground site lives at `../../apps/playground` and is deployed to
+GitHub Pages at <https://andymai.github.io/labcat-crt/>.
 
 ## License
 
