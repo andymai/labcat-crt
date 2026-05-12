@@ -72,21 +72,30 @@ function readPresetNoiseAlpha(overlay: HTMLElement): number {
 }
 
 /*
- * Light content theme: warm cream paper + near-black text + a sepia glow that
- * reads as ink-bleed rather than phosphor halation. Lets users see how each
- * preset's scanlines/grille/vignette behave when the underlying content is
- * bright instead of dark.
+ * Light content theme: warm cream paper + near-black text. Each preset gets
+ * its own light-mode glow color because the dark-mode defaults break here:
+ *   - pvm/consumer use `currentColor`, which becomes dark text → invisible
+ *   - p4-white uses near-white (#f0f0e8) → invisible on cream
+ *   - amber's #ffb43a washes out; needs a deeper amber to read on cream
+ *   - green's #4cff8a is vivid enough to keep
  *
- * The glow color slots into --crt-glow-color so halation still shows up;
- * a user-picked glow (custom glow checkbox) overrides this.
+ * Using preset-native glow tones in light mode keeps the visual identity of
+ * each preset intact — without this, every preset looks like sepia ink-bleed
+ * and you can't tell them apart. A user-picked custom glow still overrides.
  */
 type ContentTheme = 'dark' | 'light';
 const LIGHT_THEME = {
   bg: '#f0ece4',
   fg: '#1a1a1a',
-  glow: '#6a3e1c',
   codeBg: 'rgba(0, 0, 0, 0.08)',
 } as const;
+const LIGHT_GLOW_BY_PRESET: Record<CrtPreset, string> = {
+  pvm: '#2a4a7a', // cool steel blue — pro broadcast feel
+  consumer: '#a04020', // warm rust — NTSC TV warmth
+  amber: '#c0651c', // deeper amber, visible on cream
+  green: '#1a6a3a', // forest green
+  'p4-white': '#3a3a3a', // neutral dark grey
+};
 
 @customElement('playground-app')
 export class PlaygroundApp extends LitElement {
@@ -200,8 +209,8 @@ export class PlaygroundApp extends LitElement {
       if (this.overrides.has(s.var)) o.style.setProperty(s.var, String(this.sliderValues[s.key]));
       else o.style.removeProperty(s.var);
     }
-    // Glow priority: user override > theme default > preset default (no override).
-    const themeGlow = this.contentTheme === 'light' ? LIGHT_THEME.glow : null;
+    // Glow priority: user override > theme-per-preset default > preset default.
+    const themeGlow = this.contentTheme === 'light' ? LIGHT_GLOW_BY_PRESET[this.preset] : null;
     const glowOverride = this.glowColorEnabled ? this.glowColor : themeGlow;
     if (glowOverride) o.style.setProperty('--crt-glow-color', glowOverride);
     else o.style.removeProperty('--crt-glow-color');
