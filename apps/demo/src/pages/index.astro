@@ -1,0 +1,113 @@
+---
+import '@labcat/crt/glow.css';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@labcat/crt — preset gallery</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        background: #0d0d0d;
+        color: #d5d5d5;
+        font-family:
+          'Berkeley Mono', ui-monospace, 'JetBrains Mono', SFMono-Regular,
+          Menlo, Consolas, monospace;
+      }
+      body {
+        margin: 0;
+        padding: 2rem;
+      }
+      h1 {
+        margin: 0 0 1.5rem;
+        font-size: 1.25rem;
+        font-weight: normal;
+        opacity: 0.7;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+      }
+      .cell {
+        border: 1px solid #2a2a2a;
+        padding: 0;
+        min-height: 280px;
+        position: relative;
+      }
+      .cell crt-overlay {
+        display: block;
+        padding: 1.5rem;
+        height: 100%;
+        box-sizing: border-box;
+      }
+      .cell h2 {
+        font-size: 1.1rem;
+        margin: 0 0 0.5rem;
+        color: var(--crt-glow-color, currentColor);
+      }
+      .cell p {
+        font-size: 0.9rem;
+        line-height: 1.5;
+        opacity: 0.85;
+        margin: 0;
+      }
+      .cell a {
+        display: block;
+        margin-top: 1rem;
+        font-size: 0.85rem;
+        opacity: 0.6;
+        color: inherit;
+      }
+      .nav {
+        margin-top: 2rem;
+        font-size: 0.85rem;
+        opacity: 0.5;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>@labcat/crt — preset gallery (side-by-side)</h1>
+    <div class="grid">
+      <div class="cell">
+        <crt-overlay preset="pvm">
+          <h2 class="crt-glow">Sony PVM</h2>
+          <p>Broadcast monitor. Crisp scanlines, aperture grille, near-flat vignette, no motion.</p>
+          <a href="/pvm/">full route →</a>
+        </crt-overlay>
+      </div>
+      <div class="cell">
+        <crt-overlay preset="consumer">
+          <h2 class="crt-glow">Consumer NTSC</h2>
+          <p>Generic 90s TV. Softer scans, heavier vignette, sub-pixel chromatic aberration, faint shimmer.</p>
+          <a href="/consumer/">full route →</a>
+        </crt-overlay>
+      </div>
+      <div class="cell">
+        <crt-overlay preset="amber">
+          <h2 class="crt-glow">VT220 Amber</h2>
+          <p>Monochrome amber phosphor. No grille. Heavier glow, scanline drift.</p>
+          <a href="/amber/">full route →</a>
+        </crt-overlay>
+      </div>
+      <div class="cell">
+        <crt-overlay preset="green">
+          <h2 class="crt-glow">IBM 5151 Green</h2>
+          <p>P31 green phosphor. Tighter scanline pitch, scanline drift.</p>
+          <a href="/green/">full route →</a>
+        </crt-overlay>
+      </div>
+    </div>
+    <p class="nav">
+      Snapshot baselines live in <code>tests/__snapshots__/</code>. Regenerate
+      via <code>pnpm test:update</code> from within the linux Docker image
+      documented in <code>README.md</code>.
+    </p>
+    <script>
+      import '@labcat/crt';
+    </script>
+  </body>
+</html>

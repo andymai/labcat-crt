@@ -1,0 +1,66 @@
+{
+  "name": "@labcat/crt",
+  "version": "0.1.0",
+  "description": "Customizable CRT visualization web component. PVM, NTSC consumer, amber, and green monochrome presets.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": ["./dist/index.js", "*.css"],
+  "files": ["dist", "custom-elements.json", "README.md"],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "customElements": "custom-elements.json",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./glow.css": "./dist/glow.css",
+    "./custom-elements.json": "./custom-elements.json",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "prebuild": "pnpm cem",
+    "build": "vite build && tsc -p tsconfig.build.json && node scripts/copy-assets.mjs",
+    "dev": "vite build --watch",
+    "cem": "cem analyze --litelement --globs \"src/**/*.ts\" --exclude \"**/*.test.ts\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "size": "size-limit",
+    "clean": "rm -rf dist custom-elements.json *.tsbuildinfo"
+  },
+  "dependencies": {
+    "lit": "^3.2.1"
+  },
+  "devDependencies": {
+    "@custom-elements-manifest/analyzer": "^0.10.4",
+    "@open-wc/testing-helpers": "^3.0.1",
+    "@size-limit/preset-small-lib": "^11.1.6",
+    "@vitest/browser": "^3.0.0",
+    "playwright": "1.49.1",
+    "size-limit": "^11.1.6",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.7",
+    "vitest": "^3.0.0"
+  },
+  "size-limit": [
+    {
+      "name": "@labcat/crt (ESM, gzip, Lit bundled)",
+      "path": "dist/index.js",
+      "limit": "12 kB",
+      "import": "*"
+    },
+    {
+      "name": "@labcat/crt (ESM, gzip, Lit shared)",
+      "path": "dist/index.js",
+      "limit": "4 kB",
+      "import": "*",
+      "ignore": ["lit", "lit/decorators.js", "lit/directives/class-map.js"]
+    }
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

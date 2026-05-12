@@ -1,0 +1,23 @@
+{
+  "name": "@labcat/crt-demo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "astro build",
+    "dev": "astro dev",
+    "preview": "astro preview",
+    "test": "playwright test",
+    "test:update": "playwright test --update-snapshots",
+    "typecheck": "astro check",
+    "clean": "rm -rf dist .astro test-results playwright-report"
+  },
+  "dependencies": {
+    "@labcat/crt": "workspace:^",
+    "astro": "^5.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.49.1",
+    "typescript": "^5.7.3"
+  }
+}

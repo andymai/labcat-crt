@@ -1,0 +1,233 @@
+{
+  "schemaVersion": "1.0.0",
+  "readme": "",
+  "modules": [
+    {
+      "kind": "javascript-module",
+      "path": "src/crt-overlay.ts",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "`<crt-overlay>` paints a CRT phosphor effect on its slotted content\n(per-container) or on the viewport (`fullscreen`).\n\nPresets: `pvm` (Sony broadcast monitor, default), `consumer` (NTSC TV\nwith shimmer), `amber` (VT220 monochrome), `green` (IBM 5151 monochrome).\n\nTo enable halation on bright text, import `@labcat/crt/glow.css` once in\nyour app and tag elements with `class=\"crt-glow\"`. The component publishes\nthe halation CSS vars; the imported stylesheet binds them to that class.",
+          "name": "CrtOverlay",
+          "cssProperties": [
+            {
+              "description": "z-index for fullscreen mode.",
+              "name": "--crt-z",
+              "default": "9999"
+            }
+          ],
+          "cssParts": [
+            {
+              "description": "The painted overlay layer (scanlines, grille, vignette).",
+              "name": "overlay"
+            }
+          ],
+          "slots": [
+            {
+              "description": "Content to overlay. Ignored in `fullscreen` mode.",
+              "name": ""
+            }
+          ],
+          "members": [
+            {
+              "kind": "field",
+              "name": "preset",
+              "type": {
+                "text": "CrtPreset"
+              },
+              "default": "'pvm'",
+              "description": "Which CRT archetype to emulate.",
+              "attribute": "preset",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "fullscreen",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "When set, the overlay covers the viewport (`position: fixed; inset: 0`)\nand the slot is hidden. Halation vars publish to `document.documentElement`\nso `.crt-glow` elements anywhere on the page inherit them.",
+              "attribute": "fullscreen",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "disabled",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Turn the effect off without unmounting. Animations pause cleanly so\nre-enabling resumes from a stable state. Halation vars are unpublished.",
+              "attribute": "disabled",
+              "reflects": true
+            },
+            {
+              "kind": "method",
+              "name": "#registerFullscreen",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "#unregisterFullscreen",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            }
+          ],
+          "attributes": [
+            {
+              "name": "preset",
+              "type": {
+                "text": "CrtPreset"
+              },
+              "default": "'pvm'",
+              "description": "Which CRT archetype to emulate.",
+              "fieldName": "preset",
+              "attribute": "preset"
+            },
+            {
+              "name": "fullscreen",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "When set, the overlay covers the viewport (`position: fixed; inset: 0`)\nand the slot is hidden. Halation vars publish to `document.documentElement`\nso `.crt-glow` elements anywhere on the page inherit them.",
+              "fieldName": "fullscreen",
+              "attribute": "fullscreen"
+            },
+            {
+              "name": "disabled",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Turn the effect off without unmounting. Animations pause cleanly so\nre-enabling resumes from a stable state. Halation vars are unpublished.",
+              "fieldName": "disabled",
+              "attribute": "disabled"
+            }
+          ],
+          "superclass": {
+            "name": "LitElement",
+            "package": "lit"
+          },
+          "tagName": "crt-overlay",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "CrtOverlay",
+          "declaration": {
+            "name": "CrtOverlay",
+            "module": "src/crt-overlay.ts"
+          }
+        },
+        {
+          "kind": "custom-element-definition",
+          "name": "crt-overlay",
+          "declaration": {
+            "name": "CrtOverlay",
+            "module": "src/crt-overlay.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/index.ts",
+      "declarations": [],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "CrtOverlay",
+          "declaration": {
+            "name": "CrtOverlay",
+            "module": "./crt-overlay.js"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "CrtPreset",
+          "declaration": {
+            "name": "CrtPreset",
+            "module": "./crt-overlay.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/styles/animations.ts",
+      "declarations": [
+        {
+          "kind": "variable",
+          "name": "animationStyles",
+          "default": "css` @keyframes crt-scanline-drift { from { background-position-y: 0px, 0, 0; } to { background-position-y: 0px, 0, 60px; } } @keyframes crt-phosphor-shimmer { 0% { opacity: 1; } 45% { opacity: 0.97; } 55% { opacity: 1; } 100% { opacity: 0.985; } } :host([preset='consumer']) .overlay, :host([preset='amber']) .overlay, :host([preset='green']) .overlay { animation: crt-scanline-drift 30s linear infinite; } :host([preset='consumer']) .overlay { animation: crt-scanline-drift 30s linear infinite, crt-phosphor-shimmer 120ms steps(2, end) infinite; } :host([disabled]) .overlay { animation: none; } @media (prefers-reduced-motion: reduce) { :host .overlay { animation: none; } } @media (forced-colors: active) { :host, :host([fullscreen]) { display: none; } } @media print { :host, :host([fullscreen]) { display: none; } } `"
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "animationStyles",
+          "declaration": {
+            "name": "animationStyles",
+            "module": "src/styles/animations.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/styles/base.ts",
+      "declarations": [
+        {
+          "kind": "variable",
+          "name": "baseStyles",
+          "default": "css` :host { display: block; position: relative; isolation: isolate; /* Halation vars are composed from glow + aberration parts so a preset can tune one without rewriting the other. Defaults are a tight bloom with no aberration; preset rules override per archetype. */ --crt-glow-color: currentColor; --crt-glow-shadow: 0 0 0.5px var(--crt-glow-color), 0 0 4px color-mix(in srgb, var(--crt-glow-color) 70%, transparent), 0 0 14px color-mix(in srgb, var(--crt-glow-color) 30%, transparent); --crt-aberration-shadow: 0 0 0 transparent; } :host([fullscreen]) { display: contents; } :host([fullscreen]) ::slotted(*) { display: none; } .overlay { position: absolute; inset: 0; pointer-events: none; z-index: 1; background-image: var(--crt-noise, none), var(--crt-grille, none), var(--crt-scanlines, none); background-size: var(--crt-noise-size, 180px 180px), auto, auto; background-repeat: repeat, repeat, repeat; -webkit-backdrop-filter: contrast(var(--crt-gamma-contrast, 1)) brightness(var(--crt-gamma-brightness, 1)) saturate(var(--crt-gamma-saturate, 1)); backdrop-filter: contrast(var(--crt-gamma-contrast, 1)) brightness(var(--crt-gamma-brightness, 1)) saturate(var(--crt-gamma-saturate, 1)); } .overlay::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: var(--crt-corner-warm, transparent), var(--crt-corner-cool, transparent), var(--crt-vignette, transparent); } :host([fullscreen]) .overlay { position: fixed; inset: 0; z-index: var(--crt-z, 9999); } :host([disabled]) .overlay { display: none; } :host([disabled]) { --crt-glow-shadow: none; --crt-aberration-shadow: 0 0 0 transparent; } `"
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "baseStyles",
+          "declaration": {
+            "name": "baseStyles",
+            "module": "src/styles/base.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/styles/presets.ts",
+      "declarations": [
+        {
+          "kind": "variable",
+          "name": "presetStyles",
+          "default": "css` /* ----- PVM (default) ----------------------------------------------- */ :host, :host([preset='pvm']) { --crt-noise: ${noiseSvg(0.025)}; --crt-grille: repeating-linear-gradient( to right, rgba(255, 80, 80, 0.06) 0px, rgba(255, 80, 80, 0.06) 1px, rgba(80, 255, 80, 0.06) 1px, rgba(80, 255, 80, 0.06) 2px, rgba(80, 80, 255, 0.06) 2px, rgba(80, 80, 255, 0.06) 3px ); --crt-scanlines: repeating-linear-gradient( to bottom, rgba(0, 0, 0, 0.55) 0px, rgba(0, 0, 0, 0.22) 0.6px, rgba(0, 0, 0, 0) 1.2px, rgba(0, 0, 0, 0) 1.8px, rgba(0, 0, 0, 0.22) 2.4px, rgba(0, 0, 0, 0.55) 3px ); --crt-corner-warm: radial-gradient( ellipse at center, transparent 70%, rgba(255, 120, 80, 0.04) 92%, transparent 100% ); --crt-corner-cool: radial-gradient( ellipse at center, transparent 78%, rgba(80, 140, 255, 0.04) 100% ); --crt-vignette: radial-gradient( ellipse at center, transparent 60%, rgba(0, 0, 0, 0.2) 100% ); --crt-gamma-contrast: 1.06; --crt-gamma-brightness: 0.96; --crt-gamma-saturate: 1.1; --crt-glow-color: currentColor; } /* ----- Consumer NTSC TV ------------------------------------------- */ :host([preset='consumer']) { --crt-noise: ${noiseSvg(0.04)}; /* Softer grille, wider triad pitch. Cheap shadow-mask, not Trinitron. */ --crt-grille: repeating-linear-gradient( to right, rgba(255, 60, 60, 0.05) 0px, rgba(255, 60, 60, 0.05) 1.5px, rgba(60, 255, 60, 0.05) 1.5px, rgba(60, 255, 60, 0.05) 3px, rgba(60, 60, 255, 0.05) 3px, rgba(60, 60, 255, 0.05) 4.5px ); --crt-scanlines: repeating-linear-gradient( to bottom, rgba(0, 0, 0, 0.35) 0px, rgba(0, 0, 0, 0.12) 0.8px, rgba(0, 0, 0, 0) 1.6px, rgba(0, 0, 0, 0) 2.4px, rgba(0, 0, 0, 0.12) 3.2px, rgba(0, 0, 0, 0.35) 4px ); --crt-corner-warm: radial-gradient( ellipse at center, transparent 55%, rgba(255, 120, 80, 0.08) 90%, transparent 100% ); --crt-corner-cool: radial-gradient( ellipse at center, transparent 65%, rgba(80, 140, 255, 0.07) 100% ); --crt-vignette: radial-gradient( ellipse at center, transparent 45%, rgba(0, 0, 0, 0.34) 100% ); --crt-gamma-contrast: 1.08; --crt-gamma-brightness: 0.93; --crt-gamma-saturate: 1.18; --crt-glow-color: currentColor; --crt-aberration-shadow: 0.5px 0 0 rgba(255, 80, 80, 0.25), -0.5px 0 0 rgba(80, 140, 255, 0.25); } /* ----- Amber monochrome (VT220) ----------------------------------- */ :host([preset='amber']) { --crt-noise: ${noiseSvg(0.03)}; --crt-grille: none; /* Monochrome amber phosphor: scanlines have a warm bias. */ --crt-scanlines: repeating-linear-gradient( to bottom, rgba(20, 8, 0, 0.6) 0px, rgba(20, 8, 0, 0.24) 0.6px, rgba(20, 8, 0, 0) 1.2px, rgba(20, 8, 0, 0) 1.8px, rgba(20, 8, 0, 0.24) 2.4px, rgba(20, 8, 0, 0.6) 3px ); --crt-corner-warm: radial-gradient( ellipse at center, transparent 60%, rgba(255, 140, 40, 0.06) 100% ); --crt-corner-cool: none; --crt-vignette: radial-gradient( ellipse at center, transparent 50%, rgba(0, 0, 0, 0.32) 100% ); --crt-gamma-contrast: 1.1; --crt-gamma-brightness: 0.94; --crt-gamma-saturate: 0.6; --crt-glow-color: #ffb43a; --crt-glow-shadow: 0 0 0.5px var(--crt-glow-color), 0 0 5px color-mix(in srgb, var(--crt-glow-color) 75%, transparent), 0 0 18px color-mix(in srgb, var(--crt-glow-color) 35%, transparent); } /* ----- Green monochrome (IBM 5151) -------------------------------- */ :host([preset='green']) { --crt-noise: ${noiseSvg(0.03)}; --crt-grille: none; /* Tighter pitch than amber. small-screen terminal feel. */ --crt-scanlines: repeating-linear-gradient( to bottom, rgba(0, 20, 4, 0.6) 0px, rgba(0, 20, 4, 0.24) 0.5px, rgba(0, 20, 4, 0) 1px, rgba(0, 20, 4, 0) 1.5px, rgba(0, 20, 4, 0.24) 2px, rgba(0, 20, 4, 0.6) 2.5px ); --crt-corner-warm: none; --crt-corner-cool: radial-gradient( ellipse at center, transparent 60%, rgba(60, 255, 120, 0.05) 100% ); --crt-vignette: radial-gradient( ellipse at center, transparent 50%, rgba(0, 0, 0, 0.32) 100% ); --crt-gamma-contrast: 1.1; --crt-gamma-brightness: 0.94; --crt-gamma-saturate: 0.5; --crt-glow-color: #4cff8a; --crt-glow-shadow: 0 0 0.5px var(--crt-glow-color), 0 0 5px color-mix(in srgb, var(--crt-glow-color) 75%, transparent), 0 0 18px color-mix(in srgb, var(--crt-glow-color) 35%, transparent); } `"
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "presetStyles",
+          "declaration": {
+            "name": "presetStyles",
+            "module": "src/styles/presets.ts"
+          }
+        }
+      ]
+    }
+  ]
+}

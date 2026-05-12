@@ -1,0 +1,32 @@
+/*
+ * Halation stylesheet. Import once in your app to enable phosphor glow on
+ * elements you tag with class="crt-glow".
+ *
+ *   import '@labcat/crt/glow.css';
+ *
+ * The <crt-overlay> element publishes --crt-glow-shadow and
+ * --crt-aberration-shadow either to its :host (per-container mode, where
+ * vars inherit to slotted descendants) or to document.documentElement
+ * (fullscreen mode, where vars must reach the whole page). This file is
+ * the binding side: pure CSS, no JS, no shadow-DOM dependency.
+ *
+ * Both halation and aberration compose into one text-shadow stack so a
+ * single repaint draws both layers. Defaults are inert (no shadow) so this
+ * stylesheet is safe to ship even when no <crt-overlay> is mounted.
+ */
+
+.crt-glow {
+  text-shadow: var(--crt-aberration-shadow, 0 0 0 transparent), var(--crt-glow-shadow, none);
+}
+
+@media (forced-colors: active) {
+  .crt-glow {
+    text-shadow: none;
+  }
+}
+
+@media print {
+  .crt-glow {
+    text-shadow: none;
+  }
+}
