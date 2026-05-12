@@ -71,12 +71,30 @@ function readPresetNoiseAlpha(overlay: HTMLElement): number {
   return Number.isFinite(parsed) ? parsed : 0.03;
 }
 
+/*
+ * Light content theme: warm cream paper + near-black text + a sepia glow that
+ * reads as ink-bleed rather than phosphor halation. Lets users see how each
+ * preset's scanlines/grille/vignette behave when the underlying content is
+ * bright instead of dark.
+ *
+ * The glow color slots into --crt-glow-color so halation still shows up;
+ * a user-picked glow (custom glow checkbox) overrides this.
+ */
+type ContentTheme = 'dark' | 'light';
+const LIGHT_THEME = {
+  bg: '#f0ece4',
+  fg: '#1a1a1a',
+  glow: '#6a3e1c',
+  codeBg: 'rgba(0, 0, 0, 0.08)',
+} as const;
+
 @customElement('playground-app')
 export class PlaygroundApp extends LitElement {
   @property({ type: String }) preset: CrtPreset = 'pvm';
   @property({ type: Boolean }) fullscreen = false;
   @property({ type: Boolean }) disabled = false;
   @property({ type: Boolean }) editing = false;
+  @property({ type: String }) contentTheme: ContentTheme = 'dark';
 
   @state() private layersOff: Record<LayerKey, boolean> = {
     scanlines: false,
@@ -152,7 +170,8 @@ export class PlaygroundApp extends LitElement {
       changed.has('glowColorEnabled') ||
       changed.has('glowColor') ||
       changed.has('noiseAlpha') ||
-      changed.has('noiseOverridden')
+      changed.has('noiseOverridden') ||
+      changed.has('contentTheme')
     ) {
       this.#applyAll();
     }
@@ -181,7 +200,10 @@ export class PlaygroundApp extends LitElement {
       if (this.overrides.has(s.var)) o.style.setProperty(s.var, String(this.sliderValues[s.key]));
       else o.style.removeProperty(s.var);
     }
-    if (this.glowColorEnabled) o.style.setProperty('--crt-glow-color', this.glowColor);
+    // Glow priority: user override > theme default > preset default (no override).
+    const themeGlow = this.contentTheme === 'light' ? LIGHT_THEME.glow : null;
+    const glowOverride = this.glowColorEnabled ? this.glowColor : themeGlow;
+    if (glowOverride) o.style.setProperty('--crt-glow-color', glowOverride);
     else o.style.removeProperty('--crt-glow-color');
 
     if (this.noiseOverridden) {
@@ -191,6 +213,16 @@ export class PlaygroundApp extends LitElement {
       );
     } else {
       o.style.removeProperty('--crt-noise');
+    }
+
+    if (this.contentTheme === 'light') {
+      o.style.setProperty('background', LIGHT_THEME.bg);
+      o.style.setProperty('color', LIGHT_THEME.fg);
+      o.style.setProperty('--pg-code-bg', LIGHT_THEME.codeBg);
+    } else {
+      o.style.removeProperty('background');
+      o.style.removeProperty('color');
+      o.style.removeProperty('--pg-code-bg');
     }
   }
 
@@ -310,6 +342,30 @@ export class PlaygroundApp extends LitElement {
                 </button>
               `,
             )}
+          </div>
+        </section>
+
+        <section class="group">
+          <h2>Content theme</h2>
+          <div class="presets">
+            <button
+              type="button"
+              class=${this.contentTheme === 'dark' ? 'preset on' : 'preset'}
+              @click=${() => {
+                this.contentTheme = 'dark';
+              }}
+            >
+              dark
+            </button>
+            <button
+              type="button"
+              class=${this.contentTheme === 'light' ? 'preset on' : 'preset'}
+              @click=${() => {
+                this.contentTheme = 'light';
+              }}
+            >
+              light
+            </button>
           </div>
         </section>
 
