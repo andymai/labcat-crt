@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import '../src/index.js';
 import type { CrtOverlay, CrtPreset } from '../src/index.js';
 
-const presets: CrtPreset[] = ['pvm', 'consumer', 'amber', 'green'];
+const presets: CrtPreset[] = ['pvm', 'consumer', 'amber', 'green', 'p4-white'];
 
 async function mount(preset: CrtPreset): Promise<CrtOverlay> {
   return fixture<CrtOverlay>(html`<crt-overlay preset=${preset}></crt-overlay>`);
@@ -56,8 +56,10 @@ describe('preset CSS variables', () => {
   it('monochrome presets disable the aperture grille', async () => {
     const amber = await mount('amber');
     const green = await mount('green');
+    const p4 = await mount('p4-white');
     expect(hostVar(amber, '--crt-grille')).toBe('none');
     expect(hostVar(green, '--crt-grille')).toBe('none');
+    expect(hostVar(p4, '--crt-grille')).toBe('none');
   });
 
   it('color presets enable the aperture grille', async () => {

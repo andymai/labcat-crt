@@ -29,7 +29,8 @@ export const animationStyles = css`
 
   :host([preset='consumer']) .overlay,
   :host([preset='amber']) .overlay,
-  :host([preset='green']) .overlay {
+  :host([preset='green']) .overlay,
+  :host([preset='p4-white']) .overlay {
     animation: crt-scanline-drift 30s linear infinite;
   }
 

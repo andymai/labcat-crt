@@ -1,7 +1,29 @@
+import { copyFileSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { defineConfig } from 'vite';
+import { type Plugin, defineConfig } from 'vite';
+
+/*
+ * Copy hand-authored CSS that ships with the package but isn't part of the
+ * JS bundle. Runs after each bundle so watch mode reseeds the file after
+ * Vite's emptyOutDir wipe.
+ */
+function copyStaticAssets(): Plugin {
+  const here = import.meta.dirname;
+  const distDir = resolve(here, 'dist');
+  const assets = [['src/glow.css', 'glow.css']] as const;
+  return {
+    name: 'labcat-crt:copy-static-assets',
+    closeBundle() {
+      mkdirSync(distDir, { recursive: true });
+      for (const [from, to] of assets) {
+        copyFileSync(resolve(here, from), resolve(distDir, to));
+      }
+    },
+  };
+}
 
 export default defineConfig({
+  plugins: [copyStaticAssets()],
   build: {
     target: 'es2022',
     lib: {

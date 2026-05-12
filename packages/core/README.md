@@ -2,8 +2,8 @@
 
 A `<crt-overlay>` web component. Renders phosphor scanlines, aperture
 grille, vignette, and halation onto its slotted content or onto the full
-viewport. Four presets: Sony PVM, NTSC consumer TV, VT220 amber, IBM 5151
-green.
+viewport. Five presets: Sony PVM, NTSC consumer TV, VT220 amber, IBM 5151
+green, P4 white-phosphor PC monitor.
 
 - **2.4 KB gzip** when Lit is already on the page, **7.95 KB** standalone.
 - Framework-agnostic (Lit web component). Drop into Astro, vanilla HTML,
@@ -55,7 +55,7 @@ component publishes the halation CSS vars to `document.documentElement`.
 
 | Attribute    | Type    | Default | Description                                                                                  |
 | ------------ | ------- | ------- | -------------------------------------------------------------------------------------------- |
-| `preset`     | string  | `pvm`   | One of `pvm`, `consumer`, `amber`, `green`.                                                  |
+| `preset`     | string  | `pvm`   | One of `pvm`, `consumer`, `amber`, `green`, `p4-white`.                                      |
 | `fullscreen` | boolean | `false` | When set, the overlay covers the viewport. Slot is hidden.                                   |
 | `disabled`   | boolean | `false` | Turns the effect off without unmounting. Animations pause cleanly so re-enabling is instant. |
 
@@ -80,6 +80,7 @@ before paint:
 | `consumer` | Generic NTSC consumer TV           | scanline drift, 60Hz shimmer | sub-pixel  | RGB shadow-mask |
 | `amber`    | DEC VT220 amber monochrome terminal | scanline drift        | none       | none            |
 | `green`    | IBM 5151 P31 green monochrome       | scanline drift        | none       | none            |
+| `p4-white` | Early-80s mono PC monitor (Apple Lisa, IBM PC mono adapter, Tandy CM-1) | scanline drift | none | none |
 
 ### CSS properties
 

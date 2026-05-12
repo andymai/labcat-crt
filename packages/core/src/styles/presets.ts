@@ -19,6 +19,11 @@ import { css, unsafeCSS } from 'lit';
  *   green    - IBM 5151 / generic green-phosphor terminal. Same monochrome
  *              treatment as amber, tighter scanline pitch, P31 green tint.
  *
+ *   p4-white - Early-80s monochrome PC monitor (Apple Lisa, IBM PC mono
+ *              adapter, Tandy CM-1). White P4 phosphor with a slight
+ *              warm-cool cast. No grille, tight scanline pitch, no
+ *              chromatic aberration, mild vignette.
+ *
  * The phosphor-noise SVG is shared across presets; alpha is tuned per
  * preset by re-encoding the data URL.
  */
@@ -97,23 +102,23 @@ export const presetStyles = css`
     );
     --crt-corner-warm: radial-gradient(
       ellipse at center,
-      transparent 55%,
-      rgba(255, 120, 80, 0.08) 90%,
+      transparent 65%,
+      rgba(255, 120, 80, 0.04) 95%,
       transparent 100%
     );
     --crt-corner-cool: radial-gradient(
       ellipse at center,
-      transparent 65%,
-      rgba(80, 140, 255, 0.07) 100%
+      transparent 60%,
+      rgba(80, 140, 255, 0.09) 100%
     );
     --crt-vignette: radial-gradient(
       ellipse at center,
-      transparent 45%,
-      rgba(0, 0, 0, 0.34) 100%
+      transparent 40%,
+      rgba(0, 0, 0, 0.38) 100%
     );
-    --crt-gamma-contrast: 1.08;
+    --crt-gamma-contrast: 1.06;
     --crt-gamma-brightness: 0.93;
-    --crt-gamma-saturate: 1.18;
+    --crt-gamma-saturate: 1.04;
     --crt-glow-color: currentColor;
     --crt-aberration-shadow:
       0.5px 0 0 rgba(255, 80, 80, 0.25),
@@ -153,6 +158,42 @@ export const presetStyles = css`
       0 0 0.5px var(--crt-glow-color),
       0 0 5px color-mix(in srgb, var(--crt-glow-color) 75%, transparent),
       0 0 18px color-mix(in srgb, var(--crt-glow-color) 35%, transparent);
+  }
+
+  /* ----- P4 white monochrome (Lisa / IBM mono adapter / Tandy CM-1) --- */
+  :host([preset='p4-white']) {
+    --crt-noise: ${noiseSvg(0.025)};
+    --crt-grille: none;
+    /* P4 white phosphor: cool-neutral scanlines, tight pitch matching the
+       high-res text terminals these monitors drove. */
+    --crt-scanlines: repeating-linear-gradient(
+      to bottom,
+      rgba(15, 15, 18, 0.55) 0px,
+      rgba(15, 15, 18, 0.22) 0.5px,
+      rgba(15, 15, 18, 0) 1px,
+      rgba(15, 15, 18, 0) 1.5px,
+      rgba(15, 15, 18, 0.22) 2px,
+      rgba(15, 15, 18, 0.55) 2.5px
+    );
+    --crt-corner-warm: none;
+    --crt-corner-cool: radial-gradient(
+      ellipse at center,
+      transparent 65%,
+      rgba(220, 230, 240, 0.03) 100%
+    );
+    --crt-vignette: radial-gradient(
+      ellipse at center,
+      transparent 55%,
+      rgba(0, 0, 0, 0.28) 100%
+    );
+    --crt-gamma-contrast: 1.08;
+    --crt-gamma-brightness: 0.95;
+    --crt-gamma-saturate: 0.4;
+    --crt-glow-color: #f0f0e8;
+    --crt-glow-shadow:
+      0 0 0.5px var(--crt-glow-color),
+      0 0 5px color-mix(in srgb, var(--crt-glow-color) 75%, transparent),
+      0 0 16px color-mix(in srgb, var(--crt-glow-color) 30%, transparent);
   }
 
   /* ----- Green monochrome (IBM 5151) -------------------------------- */

@@ -5,7 +5,7 @@ import { animationStyles } from './styles/animations.js';
 import { baseStyles } from './styles/base.js';
 import { presetStyles } from './styles/presets.js';
 
-export type CrtPreset = 'pvm' | 'consumer' | 'amber' | 'green';
+export type CrtPreset = 'pvm' | 'consumer' | 'amber' | 'green' | 'p4-white';
 
 /*
  * Module-private registry of mounted fullscreen instances. The first instance
@@ -47,7 +47,8 @@ function clearDocumentElement(): void {
  * (per-container) or on the viewport (`fullscreen`).
  *
  * Presets: `pvm` (Sony broadcast monitor, default), `consumer` (NTSC TV
- * with shimmer), `amber` (VT220 monochrome), `green` (IBM 5151 monochrome).
+ * with shimmer), `amber` (VT220 monochrome), `green` (IBM 5151 monochrome),
+ * `p4-white` (early-80s mono PC monitor).
  *
  * To enable halation on bright text, import `@labcat/crt/glow.css` once in
  * your app and tag elements with `class="crt-glow"`. The component publishes

@@ -10,6 +10,12 @@ output. Sub-pixel CSS effects diff differently across OS and font-renderer
 combinations, so baselines must be regenerated from the same environment
 they will run in.
 
+Snapshots are canonical for the Playwright Docker image
+(`mcr.microsoft.com/playwright:v1.49.1-jammy`). Running `pnpm test`
+locally outside that image will produce false-positive failures from
+font-rendering jitter. Use `pnpm test:visual` from the repo root only
+in Docker or in CI; expect local diffs otherwise.
+
 ## Regenerating snapshots
 
 Linux is the canonical environment. Run:

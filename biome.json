@@ -7,9 +7,11 @@
       "**/dist/**",
       "**/.turbo/**",
       "**/node_modules/**",
+      "**/.pnpm-store/**",
       "**/custom-elements.json",
       "**/.astro/**",
       "**/__snapshots__/**",
+      "**/*-snapshots/**",
       "**/playwright-report/**",
       "**/test-results/**"
     ]
