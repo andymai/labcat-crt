@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@labcat/crt": "workspace:^",
-    "astro": "^5.0.0",
+    "astro": "^6.1.6",
     "lit": "^3.2.1"
   },
   "devDependencies": {
