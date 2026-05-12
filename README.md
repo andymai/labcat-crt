@@ -4,8 +4,10 @@ Customizable CRT visualization library. A Lit web component that overlays
 phosphor-grille, scanlines, vignette, and halation onto any container or the
 full viewport.
 
-Monorepo. See [`packages/core`](./packages/core) for the `@labcat/crt` library
-and [`apps/demo`](./apps/demo) for the preset showcase.
+Monorepo. See [`packages/core`](./packages/core) for the `@labcat/crt` library,
+[`apps/demo`](./apps/demo) for the snapshot-locked preset showcase, and
+[`apps/playground`](./apps/playground) for the interactive control surface
+deployed to GitHub Pages at <https://andymai.github.io/labcat-crt/>.
 
 ## Status
 

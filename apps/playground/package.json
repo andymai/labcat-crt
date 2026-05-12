@@ -1,0 +1,23 @@
+{
+  "name": "@labcat/crt-playground",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "astro build",
+    "dev": "astro dev",
+    "preview": "astro preview",
+    "typecheck": "astro check",
+    "clean": "rm -rf dist .astro"
+  },
+  "dependencies": {
+    "@labcat/crt": "workspace:^",
+    "astro": "^5.0.0",
+    "lit": "^3.2.1"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.9",
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.3"
+  }
+}

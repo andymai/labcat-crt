@@ -1,0 +1,113 @@
+---
+import '@labcat/crt/glow.css';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@labcat/crt playground</title>
+    <meta name="color-scheme" content="dark" />
+    <meta
+      name="description"
+      content="Interactive playground for @labcat/crt — tweak presets, layers, gamma, and halation, then copy the resulting markup."
+    />
+    <style is:global>
+      :root {
+        color-scheme: dark;
+        background: #0d0d0d;
+        color: #d5d5d5;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+      }
+      body {
+        font-family:
+          'Berkeley Mono', ui-monospace, 'JetBrains Mono', SFMono-Regular, Menlo, Consolas,
+          monospace;
+      }
+      crt-overlay {
+        padding: 4rem 6vw;
+        box-sizing: border-box;
+      }
+      h1.crt-glow {
+        font-size: 2.5rem;
+        margin: 0 0 1.5rem;
+        color: var(--crt-glow-color, #f0f0f0);
+      }
+      p {
+        line-height: 1.65;
+        max-width: 60ch;
+      }
+      code.crt-glow {
+        display: inline-block;
+        padding: 0 0.25em;
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--crt-glow-color, #f0f0f0);
+      }
+      .preset-label {
+        font-variant-numeric: tabular-nums;
+        opacity: 0.6;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        margin-bottom: 0.5rem;
+      }
+      ul {
+        line-height: 1.8;
+      }
+      .reference-svg {
+        margin-top: 2rem;
+        color: var(--crt-glow-color, #4a90e2);
+      }
+    </style>
+  </head>
+  <body>
+    <playground-app>
+      <crt-overlay preset="pvm">
+        <div class="preset-label">labcat-crt / playground</div>
+        <h1 class="crt-glow">tune the tube</h1>
+        <p>
+          Pick a preset on the left, then layer toggles and gamma sliders to dial it in.
+          Tag bright elements with <code class="crt-glow">class="crt-glow"</code> in your own
+          markup to pick up the halation.
+        </p>
+        <p>
+          The aperture grille only renders on the color presets (Sony PVM, NTSC consumer TV).
+          Monochrome tubes had a single phosphor type, so amber, green, and P4 white resolve
+          <code class="crt-glow">--crt-grille</code> to <code class="crt-glow">none</code>.
+        </p>
+        <ul>
+          <li>Five presets covering pro, consumer, and three monochromes</li>
+          <li>Five CSS-var layers — each can be turned off independently</li>
+          <li>Halation reaches any <code class="crt-glow">.crt-glow</code> element on the page</li>
+          <li>Respects <code class="crt-glow">prefers-reduced-motion</code> and forced-colors</li>
+        </ul>
+        <svg
+          class="reference-svg"
+          width="120"
+          height="60"
+          viewBox="0 0 120 60"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-label="oscilloscope trace"
+        >
+          <path
+            d="M 0 30 Q 15 5, 30 30 T 60 30 T 90 30 T 120 30"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+          />
+        </svg>
+      </crt-overlay>
+    </playground-app>
+
+    <script>
+      import '@labcat/crt';
+      import '../components/playground-app.ts';
+    </script>
+  </body>
+</html>
