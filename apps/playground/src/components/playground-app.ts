@@ -161,6 +161,23 @@ export class PlaygroundApp extends LitElement {
     }
   }
 
+  #resetSlider(spec: SliderSpec): void {
+    if (!this.overrides.has(spec.var)) return;
+    const next = new Set(this.overrides);
+    next.delete(spec.var);
+    this.overrides = next;
+    // Inline style is cleared in #applyAll(); after the next frame the preset
+    // default is observable via getComputedStyle. Read it back into the slider.
+    requestAnimationFrame(() => {
+      if (!this.#overlay) return;
+      const raw = getComputedStyle(this.#overlay).getPropertyValue(spec.var).trim();
+      const parsed = Number.parseFloat(raw);
+      if (Number.isFinite(parsed)) {
+        this.sliderValues = { ...this.sliderValues, [spec.key]: parsed };
+      }
+    });
+  }
+
   #toggleLayer(key: LayerKey): void {
     this.layersOff = { ...this.layersOff, [key]: !this.layersOff[key] };
   }
@@ -291,7 +308,23 @@ export class PlaygroundApp extends LitElement {
               <label class="slider">
                 <span class="slider-label">
                   <span>${s.label}</span>
-                  <span class="value">${this.sliderValues[s.key].toFixed(2)}</span>
+                  <span class="value-cluster">
+                    <button
+                      type="button"
+                      class="reset-btn"
+                      title="reset to preset default"
+                      aria-label="reset ${s.label} to preset default"
+                      ?hidden=${!this.overrides.has(s.var)}
+                      @click=${(e: Event) => {
+                        // Stop the click from toggling the label-bound input focus.
+                        e.preventDefault();
+                        this.#resetSlider(s);
+                      }}
+                    >
+                      ↻
+                    </button>
+                    <span class="value">${this.sliderValues[s.key].toFixed(2)}</span>
+                  </span>
                 </span>
                 <input
                   type="range"
@@ -465,9 +498,32 @@ export class PlaygroundApp extends LitElement {
       justify-content: space-between;
       opacity: 0.85;
     }
+    .slider-label .value-cluster {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
     .slider-label .value {
       font-variant-numeric: tabular-nums;
       opacity: 0.6;
+    }
+    .slider .reset-btn {
+      appearance: none;
+      background: transparent;
+      border: none;
+      color: #8a8a8a;
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.85rem;
+      line-height: 1;
+      padding: 0;
+      transition: color 120ms ease;
+    }
+    .slider .reset-btn:hover {
+      color: #f0f0f0;
+    }
+    .slider .reset-btn[hidden] {
+      display: none;
     }
     .slider input[type='range'] {
       width: 100%;
