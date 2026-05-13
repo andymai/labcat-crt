@@ -1,11 +1,13 @@
 import { css } from 'lit';
 
 /*
- * Size-aware realism: every visible feature derives from container query
- * units so one preset renders a "real" CRT at any viewport size. In
- * fullscreen mode the host is `display: contents` (no box) and cqb/cqi fall
- * back to the small viewport per spec — same "constant line count" feel,
- * no conditional formula.
+ * Size-aware realism: grille pitch derives from the host's container width
+ * (cqi); scanline pitch falls back to the small viewport block-size (svb).
+ * `container-type: inline-size` (rather than `size`) deliberately avoids
+ * block-direction size containment — under `size`, the host's intrinsic
+ * height ignores descendants, which clamps the box to any explicit
+ * min-height and lets tall content visually overflow below the painted
+ * overlay layer.
  *
  * Halation vars (--crt-glow-shadow, --crt-aberration-shadow) are in em so
  * bloom scales with text size, matching how real phosphor bloom intensifies
@@ -16,7 +18,7 @@ export const baseStyles = css`
     display: block;
     position: relative;
     isolation: isolate;
-    container-type: size;
+    container-type: inline-size;
 
     --crt-lines: 480;
     --crt-triads: 480;
