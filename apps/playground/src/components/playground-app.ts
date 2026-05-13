@@ -1156,13 +1156,16 @@ export class PlaygroundApp extends LitElement {
       min-height: 100vh;
     }
 
-    /* Sized modes: stage is a centered, padded canvas with bezel color;
-       slotted overlay clips to fixed dimensions so the size-aware scaling
-       is visible. The padding var is consumed inside the overlay's own
-       CSS in index.astro — vw-based padding stops eating the box at mobile. */
+    /* Sized modes: stage is a centered, padded canvas with bezel color.
+       Sized overlays use min-height (not height) so tall content can extend
+       the box rather than scroll inside it — the library's .overlay is
+       absolute inset:0 of the host's padding box, so inner scrolling would
+       leave the scanline layer pinned at the top while content scrolls
+       past, producing visible scanline-gaps on long vignettes. The outer
+       .stage handles scrolling when content exceeds viewport height. */
     .stage:not([data-size='free']) {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: center;
       padding: 1.25rem;
       background: var(--pg-bezel);
@@ -1170,48 +1173,29 @@ export class PlaygroundApp extends LitElement {
     }
     .stage:not([data-size='free']) ::slotted(crt-overlay) {
       --pg-overlay-padding: 1.5rem;
+      display: block;
+      max-width: 100%;
+      box-shadow: 0 0 0 1px #1f1f1f;
     }
     .stage[data-size='mobile'] ::slotted(crt-overlay) {
-      display: block;
       width: 375px;
-      height: 667px;
-      overflow: auto;
-      box-shadow: 0 0 0 1px #1f1f1f;
+      min-height: 667px;
     }
     .stage[data-size='tablet'] ::slotted(crt-overlay) {
-      display: block;
       width: 1024px;
-      height: 768px;
-      max-width: 100%;
-      max-height: calc(100vh - 3rem);
-      overflow: auto;
-      box-shadow: 0 0 0 1px #1f1f1f;
+      min-height: 768px;
     }
     .stage[data-size='desktop'] ::slotted(crt-overlay) {
-      display: block;
       width: 1440px;
-      height: 900px;
-      max-width: 100%;
-      max-height: calc(100vh - 3rem);
-      overflow: auto;
-      box-shadow: 0 0 0 1px #1f1f1f;
+      min-height: 900px;
     }
     .stage[data-size='4k'] ::slotted(crt-overlay) {
-      display: block;
       width: 2560px;
-      height: 1440px;
-      max-width: 100%;
-      max-height: calc(100vh - 3rem);
-      overflow: auto;
-      box-shadow: 0 0 0 1px #1f1f1f;
+      min-height: 1440px;
     }
     .stage[data-size='ultrawide'] ::slotted(crt-overlay) {
-      display: block;
       width: min(1680px, 100%);
       aspect-ratio: 21 / 9;
-      max-height: calc(100vh - 3rem);
-      overflow: auto;
-      box-shadow: 0 0 0 1px #1f1f1f;
     }
 
     ::slotted(crt-overlay[contenteditable='true']) {
