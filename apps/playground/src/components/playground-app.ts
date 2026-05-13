@@ -162,9 +162,24 @@ export class PlaygroundApp extends LitElement {
   @query('slot') private slotEl!: HTMLSlotElement;
   @query('.stage') private stageEl!: HTMLElement;
   @query('input.file-picker') private filePickerEl!: HTMLInputElement;
+  @query('aside.panel') private panelEl!: HTMLElement;
 
   #overlay: CrtOverlay | null = null;
   #cycleTimer: number | null = null;
+
+  #dragState: {
+    startY: number;
+    startTranslate: number;
+    lastY: number;
+    lastT: number;
+    velocity: number;
+    moved: boolean;
+    panelHeight: number;
+    peek: number;
+    pointerId: number;
+  } | null = null;
+
+  #suppressNextClick = false;
 
   override firstUpdated(): void {
     this.#refreshOverlay();
@@ -198,6 +213,98 @@ export class PlaygroundApp extends LitElement {
   #toggleSheet(): void {
     this.sheetOpen = !this.sheetOpen;
   }
+
+  #onPanelClick = (e: MouseEvent): void => {
+    if (this.#suppressNextClick) {
+      this.#suppressNextClick = false;
+      return;
+    }
+    if (this.sheetOpen) return;
+    const target = e.target as Element | null;
+    if (!target) return;
+    if (target.closest('button, input, label, select, textarea, summary, a, [role="button"]')) {
+      return;
+    }
+    this.sheetOpen = true;
+  };
+
+  #onHandleClick = (e: MouseEvent): void => {
+    if (this.#suppressNextClick) {
+      this.#suppressNextClick = false;
+      e.stopPropagation();
+      return;
+    }
+    this.#toggleSheet();
+  };
+
+  #readPeek = (): number => {
+    const v = getComputedStyle(this.panelEl).getPropertyValue('--sheet-peek').trim();
+    const n = Number.parseFloat(v);
+    return Number.isFinite(n) ? n : 124;
+  };
+
+  #onHandlePointerDown = (e: PointerEvent): void => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    const panelHeight = this.panelEl.getBoundingClientRect().height;
+    const peek = this.#readPeek();
+    this.#dragState = {
+      startY: e.clientY,
+      startTranslate: this.sheetOpen ? 0 : Math.max(0, panelHeight - peek),
+      lastY: e.clientY,
+      lastT: e.timeStamp,
+      velocity: 0,
+      moved: false,
+      panelHeight,
+      peek,
+      pointerId: e.pointerId,
+    };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  #onHandlePointerMove = (e: PointerEvent): void => {
+    const d = this.#dragState;
+    if (!d || e.pointerId !== d.pointerId) return;
+    const dy = e.clientY - d.startY;
+    if (!d.moved) {
+      if (Math.abs(dy) < 4) return;
+      d.moved = true;
+      this.panelEl.style.transition = 'none';
+    }
+    const maxTranslate = Math.max(0, d.panelHeight - d.peek);
+    const newTranslate = Math.min(maxTranslate, Math.max(0, d.startTranslate + dy));
+    this.panelEl.style.transform = `translateY(${newTranslate}px)`;
+    const now = e.timeStamp;
+    const dt = now - d.lastT;
+    if (dt > 0) d.velocity = (e.clientY - d.lastY) / dt;
+    d.lastY = e.clientY;
+    d.lastT = now;
+  };
+
+  #endDrag = (e: PointerEvent, completed: boolean): void => {
+    const d = this.#dragState;
+    if (!d || e.pointerId !== d.pointerId) return;
+    this.#dragState = null;
+    const el = e.currentTarget as HTMLElement;
+    if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId);
+    if (!d.moved || !completed) {
+      this.panelEl.style.transition = '';
+      this.panelEl.style.transform = '';
+      return;
+    }
+    this.#suppressNextClick = true;
+    const maxTranslate = Math.max(1, d.panelHeight - d.peek);
+    const dy = e.clientY - d.startY;
+    const currentTranslate = Math.min(maxTranslate, Math.max(0, d.startTranslate + dy));
+    const shouldOpen =
+      Math.abs(d.velocity) > 0.5 ? d.velocity < 0 : currentTranslate < maxTranslate / 2;
+    this.panelEl.style.transition = '';
+    void this.panelEl.offsetHeight;
+    this.panelEl.style.transform = '';
+    this.sheetOpen = shouldOpen;
+  };
+
+  #onHandlePointerUp = (e: PointerEvent): void => this.#endDrag(e, true);
+  #onHandlePointerCancel = (e: PointerEvent): void => this.#endDrag(e, false);
 
   #refreshOverlay(): void {
     const assigned = this.slotEl.assignedElements({ flatten: true });
@@ -551,13 +658,18 @@ export class PlaygroundApp extends LitElement {
       <aside
         class=${this.sheetOpen ? 'panel open' : 'panel'}
         aria-label="CRT playground controls"
+        @click=${this.#onPanelClick}
       >
         <button
           type="button"
           class="sheet-handle"
           aria-label=${this.sheetOpen ? 'collapse controls' : 'expand controls'}
           aria-expanded=${this.sheetOpen ? 'true' : 'false'}
-          @click=${() => this.#toggleSheet()}
+          @click=${this.#onHandleClick}
+          @pointerdown=${this.#onHandlePointerDown}
+          @pointermove=${this.#onHandlePointerMove}
+          @pointerup=${this.#onHandlePointerUp}
+          @pointercancel=${this.#onHandlePointerCancel}
         >
           <span class="handle-bar" aria-hidden="true"></span>
         </button>
@@ -1219,27 +1331,33 @@ export class PlaygroundApp extends LitElement {
         justify-content: center;
         align-items: center;
         appearance: none;
-        background: transparent;
         border: 0;
         width: 100%;
-        padding: 0.55rem 0 0.35rem;
-        cursor: pointer;
-        touch-action: manipulation;
+        min-height: 44px;
+        padding: 1.1rem 0;
+        cursor: grab;
+        touch-action: none;
+        user-select: none;
         position: sticky;
         top: 0;
         background: #0a0a0a;
         z-index: 1;
       }
+      .sheet-handle:active {
+        cursor: grabbing;
+      }
       .sheet-handle .handle-bar {
-        width: 40px;
-        height: 4px;
-        border-radius: 2px;
-        background: #3a3a3a;
-        transition: background 160ms ease;
+        width: 48px;
+        height: 5px;
+        border-radius: 3px;
+        background: #6a6a6a;
+        transition: background 160ms ease, width 160ms ease;
       }
       .sheet-handle:hover .handle-bar,
-      .sheet-handle:focus-visible .handle-bar {
-        background: #5a5a5a;
+      .sheet-handle:focus-visible .handle-bar,
+      .sheet-handle:active .handle-bar {
+        background: #9a9a9a;
+        width: 56px;
       }
       .brand {
         display: none;
