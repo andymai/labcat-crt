@@ -5,7 +5,7 @@ import { animationStyles } from './styles/animations.js';
 import { baseStyles } from './styles/base.js';
 import { presetStyles } from './styles/presets.js';
 
-export type CrtPreset = 'calm' | 'warm' | 'cool';
+export type CrtPreset = 'calm' | 'warm' | 'cool' | 'pvm' | 'consumer';
 
 /* Set, not a counter: HMR can disconnect instances that never finished
    connecting; a counter would underflow. */

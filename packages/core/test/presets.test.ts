@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import '../src/index.js';
 import type { CrtOverlay, CrtPreset } from '../src/index.js';
 
-const presets: CrtPreset[] = ['calm', 'warm', 'cool'];
+const presets: CrtPreset[] = ['calm', 'warm', 'cool', 'pvm', 'consumer'];
 
 async function mount(preset: CrtPreset): Promise<CrtOverlay> {
   return fixture<CrtOverlay>(html`<crt-overlay preset=${preset}></crt-overlay>`);
@@ -72,6 +72,8 @@ describe('preset CSS variables', () => {
     calm: '480',
     warm: '420',
     cool: '540',
+    pvm: '480',
+    consumer: '420',
   };
   for (const preset of presets) {
     it(`${preset} sets its --crt-lines constant`, async () => {

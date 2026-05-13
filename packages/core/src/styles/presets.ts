@@ -1,10 +1,17 @@
 import { css, unsafeCSS } from 'lit';
 
 /*
- * Three aesthetic presets, not period emulations:
- *   calm — neutral warm-white phosphor, near-invisible scanlines, no grille
- *   warm — amber-sepia, slightly visible scanlines, soft drift, no grille
- *   cool — green-cyan phosphor, tighter scanlines, no grille
+ * Five aesthetic presets, not period emulations:
+ *   calm     — neutral warm-white phosphor, near-invisible scanlines
+ *   warm     — amber-sepia, slightly visible scanlines, soft drift
+ *   cool     — green-cyan phosphor, tighter scanlines
+ *   pvm      — cool-white broadcast monitor, sharp scanlines, neutral cast
+ *   consumer — warm consumer-NTSC, slightly hazier, deeper vignette
+ *
+ * pvm and consumer share the calm/warm/cool restraint — they're flavored
+ * variants of the same editorial tier, not the pre-pivot period-accurate
+ * settings. If you want loud period emulation, layer your own overrides
+ * via the public --crt-* strength vars.
  *
  * Two-tier declarations: host-level vars (glow, gamma) on :host so halation
  * publishing can read them via getComputedStyle. Gradient vars on .overlay
@@ -102,6 +109,52 @@ export const presetStyles = css`
       ellipse at center,
       transparent 55%,
       rgba(0, 14, 8, calc(var(--crt-vignette-strength) * 1.3)) 100%
+    );
+  }
+
+  /* ----- pvm (cool-white broadcast monitor) ---------------------------- */
+  :host([preset='pvm']) {
+    --crt-lines: 480;
+    --crt-gamma-contrast: 1.05;
+    --crt-gamma-brightness: 0.99;
+    --crt-gamma-saturate: 1;
+    --crt-glow-color: #eaf0fa;
+    --crt-glow-shadow:
+      0 0 0.04em var(--crt-glow-color),
+      0 0 0.3em color-mix(in srgb, var(--crt-glow-color) calc(45% * var(--crt-glow-strength)), transparent),
+      0 0 0.9em color-mix(in srgb, var(--crt-glow-color) calc(16% * var(--crt-glow-strength)), transparent);
+  }
+  :host([preset='pvm']) .overlay {
+    --crt-noise: ${grainSvg(0.018)};
+    --crt-grille: none;
+    --crt-scanlines: ${scanlines('10, 12, 18')};
+    --crt-vignette: radial-gradient(
+      ellipse at center,
+      transparent 60%,
+      rgba(0, 6, 14, calc(var(--crt-vignette-strength) * 0.85)) 100%
+    );
+  }
+
+  /* ----- consumer (warm home NTSC receiver) ---------------------------- */
+  :host([preset='consumer']) {
+    --crt-lines: 420;
+    --crt-gamma-contrast: 1.06;
+    --crt-gamma-brightness: 0.96;
+    --crt-gamma-saturate: 1.05;
+    --crt-glow-color: #ffe9c2;
+    --crt-glow-shadow:
+      0 0 0.04em var(--crt-glow-color),
+      0 0 0.36em color-mix(in srgb, var(--crt-glow-color) calc(58% * var(--crt-glow-strength)), transparent),
+      0 0 1.05em color-mix(in srgb, var(--crt-glow-color) calc(24% * var(--crt-glow-strength)), transparent);
+  }
+  :host([preset='consumer']) .overlay {
+    --crt-noise: ${grainSvg(0.04)};
+    --crt-grille: none;
+    --crt-scanlines: ${scanlines('26, 14, 4')};
+    --crt-vignette: radial-gradient(
+      ellipse at center,
+      transparent 45%,
+      rgba(24, 12, 0, calc(var(--crt-vignette-strength) * 1.6)) 100%
     );
   }
 `;

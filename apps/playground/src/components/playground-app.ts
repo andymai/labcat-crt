@@ -2,7 +2,7 @@ import type { CrtOverlay, CrtPreset } from '@labcat/crt';
 import { LitElement, css, html } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
 
-const PRESETS: readonly CrtPreset[] = ['calm', 'warm', 'cool'] as const;
+const PRESETS: readonly CrtPreset[] = ['calm', 'warm', 'cool', 'pvm', 'consumer'] as const;
 
 type SliderKey = 'lines' | 'scanlineStrength' | 'glowStrength' | 'vignetteStrength';
 type SliderSpec = {
@@ -94,6 +94,8 @@ const LIGHT_THEME = {
     calm: '#2e3f55',
     warm: '#c46c1a',
     cool: '#1a8a4a',
+    pvm: '#3b4660',
+    consumer: '#a36418',
   } satisfies Record<CrtPreset, string>,
   glowShadow: `
     0 0 0.04em var(--crt-glow-color),

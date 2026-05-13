@@ -44,7 +44,9 @@ import '@labcat/crt/glow.css';
       crt-overlay[preset='calm'] > article[data-preset='calm'],
       crt-overlay:not([preset]) > article[data-preset='calm'],
       crt-overlay[preset='warm'] > article[data-preset='warm'],
-      crt-overlay[preset='cool'] > article[data-preset='cool'] {
+      crt-overlay[preset='cool'] > article[data-preset='cool'],
+      crt-overlay[preset='pvm'] > article[data-preset='pvm'],
+      crt-overlay[preset='consumer'] > article[data-preset='consumer'] {
         display: block;
       }
 
@@ -348,6 +350,85 @@ import '@labcat/crt/glow.css';
               — Neal Stephenson, <em>Snow Crash</em>, 1992
             </p>
           </blockquote>
+          <div class="drop-zone"></div>
+        </article>
+
+        <!-- pvm: SMPTE 75% bars over a cool-white broadcast-reference preset.
+             Re-tuned to the editorial aesthetic — restraint matches calm/warm/cool,
+             not the loud pre-pivot studio settings. -->
+        <article data-preset="pvm">
+          <h1 class="crt-glow">broadcast monitoring</h1>
+          <p class="byline">SMPTE 75% color bars · NTSC reference</p>
+          <figure class="hero" aria-label="SMPTE 75% color bars with reverse-blue castellation and PLUGE strip">
+            <svg viewBox="0 0 700 400" xmlns="http://www.w3.org/2000/svg">
+              <rect x="0" y="0" width="100" height="270" fill="#c0c0c0"/>
+              <rect x="100" y="0" width="100" height="270" fill="#c0c000"/>
+              <rect x="200" y="0" width="100" height="270" fill="#00c0c0"/>
+              <rect x="300" y="0" width="100" height="270" fill="#00c000"/>
+              <rect x="400" y="0" width="100" height="270" fill="#c000c0"/>
+              <rect x="500" y="0" width="100" height="270" fill="#c00000"/>
+              <rect x="600" y="0" width="100" height="270" fill="#0000c0"/>
+              <rect x="0" y="270" width="100" height="40" fill="#0000c0"/>
+              <rect x="100" y="270" width="100" height="40" fill="#0a0a0a"/>
+              <rect x="200" y="270" width="100" height="40" fill="#c000c0"/>
+              <rect x="300" y="270" width="100" height="40" fill="#0a0a0a"/>
+              <rect x="400" y="270" width="100" height="40" fill="#00c0c0"/>
+              <rect x="500" y="270" width="100" height="40" fill="#0a0a0a"/>
+              <rect x="600" y="270" width="100" height="40" fill="#c0c0c0"/>
+              <rect x="0" y="310" width="140" height="90" fill="#000c33"/>
+              <rect x="140" y="310" width="120" height="90" fill="#ffffff"/>
+              <rect x="260" y="310" width="170" height="90" fill="#1f1264"/>
+              <rect x="430" y="310" width="50" height="90" fill="#070707"/>
+              <rect x="480" y="310" width="50" height="90" fill="#0a0a0a"/>
+              <rect x="530" y="310" width="50" height="90" fill="#0e0e0e"/>
+              <rect x="580" y="310" width="120" height="90" fill="#070707"/>
+            </svg>
+          </figure>
+          <p>
+            Calibrated BVM on the line cut, scopes pinned to 100 IRE. The kind of bench
+            that lets a colorist trust what they see — and the rest of us trust them.
+          </p>
+          <div class="drop-zone"></div>
+        </article>
+
+        <!-- consumer: Channel 4 monoscope over a warm consumer-NTSC preset.
+             Re-tuned for editorial restraint — same gradient builders as
+             calm/warm/cool, no aperture grille, deeper warm vignette. -->
+        <article data-preset="consumer">
+          <h1 class="crt-glow">we'll return after these messages</h1>
+          <p class="byline">Channel 4 test pattern · late-night affiliate</p>
+          <figure class="hero" aria-label="Channel 4 monoscope test pattern with convergence circles and color sample dots">
+            <svg viewBox="0 0 600 450" xmlns="http://www.w3.org/2000/svg">
+              <rect x="0" y="0" width="600" height="450" fill="#1a1a1a"/>
+              <g stroke="#9aa0a0" stroke-width="1" fill="none" opacity="0.55">
+                <path d="M 0 75 L 600 75 M 0 150 L 600 150 M 0 225 L 600 225 M 0 300 L 600 300 M 0 375 L 600 375"/>
+                <path d="M 75 0 L 75 450 M 150 0 L 150 450 M 225 0 L 225 450 M 300 0 L 300 450 M 375 0 L 375 450 M 450 0 L 450 450 M 525 0 L 525 450"/>
+              </g>
+              <circle cx="300" cy="225" r="160" stroke="#e8e8e8" stroke-width="2" fill="none"/>
+              <circle cx="300" cy="225" r="80" stroke="#e8e8e8" stroke-width="1.5" fill="none"/>
+              <rect x="40" y="40" width="120" height="20" fill="#202020"/>
+              <rect x="40" y="60" width="120" height="20" fill="#444"/>
+              <rect x="40" y="80" width="120" height="20" fill="#777"/>
+              <rect x="40" y="100" width="120" height="20" fill="#aaa"/>
+              <rect x="40" y="120" width="120" height="20" fill="#e0e0e0"/>
+              <g stroke="#e8e8e8" stroke-width="1.2" fill="none">
+                <path d="M 480 60 L 555 80 M 480 75 L 555 80 M 480 90 L 555 80"/>
+                <path d="M 480 100 L 555 120 M 480 110 L 555 120 M 480 120 L 555 120 M 480 130 L 555 120 M 480 140 L 555 120"/>
+              </g>
+              <text x="300" y="232" text-anchor="middle" fill="#f0f0f0" font-family="monospace" font-size="22" font-weight="600">CH 4</text>
+              <circle cx="100" cy="380" r="15" fill="#c00000"/>
+              <circle cx="150" cy="380" r="15" fill="#00c000"/>
+              <circle cx="200" cy="380" r="15" fill="#0000c0"/>
+              <circle cx="400" cy="380" r="15" fill="#c0c000"/>
+              <circle cx="450" cy="380" r="15" fill="#c000c0"/>
+              <circle cx="500" cy="380" r="15" fill="#00c0c0"/>
+            </svg>
+          </figure>
+          <p>
+            A late-late spot break on the local affiliate. Shadow-mask grain, mistracked
+            VHS color, the faint hum of a hot tube. Held over for the test card and the
+            national anthem, then a long, quiet snow.
+          </p>
           <div class="drop-zone"></div>
         </article>
       </crt-overlay>
