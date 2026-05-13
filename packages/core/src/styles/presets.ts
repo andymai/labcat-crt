@@ -1,17 +1,14 @@
 import { css, unsafeCSS } from 'lit';
 
 /*
- * Five aesthetic presets, not period emulations:
- *   calm     — neutral warm-white phosphor, near-invisible scanlines
- *   warm     — amber-sepia, slightly visible scanlines, soft drift
- *   cool     — green-cyan phosphor, tighter scanlines
- *   pvm      — cool-white broadcast monitor, sharp scanlines, neutral cast
- *   consumer — warm consumer-NTSC, slightly hazier, deeper vignette
- *
- * pvm and consumer share the calm/warm/cool restraint — they're flavored
- * variants of the same editorial tier, not the pre-pivot period-accurate
- * settings. If you want loud period emulation, layer your own overrides
- * via the public --crt-* strength vars.
+ * Five hardware-referenced presets, all editorial-restrained (no period-
+ * accurate loudness; if you want that, override --crt-scanline-strength
+ * etc. on the host):
+ *   bvm      — Sony broadcast monitor, cool-white reference, sharp scanlines
+ *   ntsc     — home NTSC receiver, warm cast, deeper vignette, more grain
+ *   lisa     — Apple Lisa P4 phosphor, neutral warm-white reading surface
+ *   vt220    — DEC VT220 amber terminal, soft drift, wider bloom
+ *   ibm-5151 — IBM monochrome green phosphor, tighter scanlines, terminal
  *
  * Two-tier declarations: host-level vars (glow, gamma) on :host so halation
  * publishing can read them via getComputedStyle. Gradient vars on .overlay
@@ -41,9 +38,8 @@ const scanlines = (rgb: string) =>
   )`);
 
 export const presetStyles = css`
-  /* ----- calm (default) ---------------------------------------------- */
-  :host,
-  :host([preset='calm']) {
+  /* ----- lisa (Apple Lisa P4 white phosphor) -------------------------- */
+  :host([preset='lisa']) {
     --crt-lines: 480;
     --crt-gamma-contrast: 1.04;
     --crt-gamma-brightness: 0.99;
@@ -54,8 +50,7 @@ export const presetStyles = css`
       0 0 0.32em color-mix(in srgb, var(--crt-glow-color) calc(50% * var(--crt-glow-strength)), transparent),
       0 0 1em color-mix(in srgb, var(--crt-glow-color) calc(18% * var(--crt-glow-strength)), transparent);
   }
-  :host([preset='calm']) .overlay,
-  :host(:not([preset])) .overlay {
+  :host([preset='lisa']) .overlay {
     --crt-noise: ${grainSvg(0.02)};
     --crt-grille: none;
     --crt-scanlines: ${scanlines('10, 10, 12')};
@@ -66,8 +61,8 @@ export const presetStyles = css`
     );
   }
 
-  /* ----- warm (amber-sepia) ------------------------------------------- */
-  :host([preset='warm']) {
+  /* ----- vt220 (DEC amber terminal) ----------------------------------- */
+  :host([preset='vt220']) {
     --crt-lines: 420;
     --crt-gamma-contrast: 1.05;
     --crt-gamma-brightness: 0.97;
@@ -78,7 +73,7 @@ export const presetStyles = css`
       0 0 0.38em color-mix(in srgb, var(--crt-glow-color) calc(65% * var(--crt-glow-strength)), transparent),
       0 0 1.1em color-mix(in srgb, var(--crt-glow-color) calc(28% * var(--crt-glow-strength)), transparent);
   }
-  :host([preset='warm']) .overlay {
+  :host([preset='vt220']) .overlay {
     --crt-noise: ${grainSvg(0.025)};
     --crt-grille: none;
     --crt-scanlines: ${scanlines('22, 12, 4')};
@@ -89,8 +84,8 @@ export const presetStyles = css`
     );
   }
 
-  /* ----- cool (green-cyan terminal) ----------------------------------- */
-  :host([preset='cool']) {
+  /* ----- ibm-5151 (IBM monochrome green phosphor) --------------------- */
+  :host([preset='ibm-5151']) {
     --crt-lines: 540;
     --crt-gamma-contrast: 1.06;
     --crt-gamma-brightness: 0.98;
@@ -101,7 +96,7 @@ export const presetStyles = css`
       0 0 0.34em color-mix(in srgb, var(--crt-glow-color) calc(55% * var(--crt-glow-strength)), transparent),
       0 0 0.95em color-mix(in srgb, var(--crt-glow-color) calc(22% * var(--crt-glow-strength)), transparent);
   }
-  :host([preset='cool']) .overlay {
+  :host([preset='ibm-5151']) .overlay {
     --crt-noise: ${grainSvg(0.02)};
     --crt-grille: none;
     --crt-scanlines: ${scanlines('4, 18, 10')};
@@ -112,8 +107,9 @@ export const presetStyles = css`
     );
   }
 
-  /* ----- pvm (cool-white broadcast monitor) ---------------------------- */
-  :host([preset='pvm']) {
+  /* ----- bvm (default — Sony broadcast monitor) ----------------------- */
+  :host,
+  :host([preset='bvm']) {
     --crt-lines: 480;
     --crt-gamma-contrast: 1.05;
     --crt-gamma-brightness: 0.99;
@@ -124,7 +120,8 @@ export const presetStyles = css`
       0 0 0.3em color-mix(in srgb, var(--crt-glow-color) calc(45% * var(--crt-glow-strength)), transparent),
       0 0 0.9em color-mix(in srgb, var(--crt-glow-color) calc(16% * var(--crt-glow-strength)), transparent);
   }
-  :host([preset='pvm']) .overlay {
+  :host([preset='bvm']) .overlay,
+  :host(:not([preset])) .overlay {
     --crt-noise: ${grainSvg(0.018)};
     --crt-grille: none;
     --crt-scanlines: ${scanlines('10, 12, 18')};
@@ -135,8 +132,8 @@ export const presetStyles = css`
     );
   }
 
-  /* ----- consumer (warm home NTSC receiver) ---------------------------- */
-  :host([preset='consumer']) {
+  /* ----- ntsc (home NTSC receiver) ------------------------------------ */
+  :host([preset='ntsc']) {
     --crt-lines: 420;
     --crt-gamma-contrast: 1.06;
     --crt-gamma-brightness: 0.96;
@@ -147,7 +144,7 @@ export const presetStyles = css`
       0 0 0.36em color-mix(in srgb, var(--crt-glow-color) calc(58% * var(--crt-glow-strength)), transparent),
       0 0 1.05em color-mix(in srgb, var(--crt-glow-color) calc(24% * var(--crt-glow-strength)), transparent);
   }
-  :host([preset='consumer']) .overlay {
+  :host([preset='ntsc']) .overlay {
     --crt-noise: ${grainSvg(0.04)};
     --crt-grille: none;
     --crt-scanlines: ${scanlines('26, 14, 4')};

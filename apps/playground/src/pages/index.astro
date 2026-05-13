@@ -37,16 +37,16 @@ import '@labcat/crt/glow.css';
       }
 
       /* Only the article matching the overlay's preset renders. Default
-         (no attribute) maps to calm. */
+         (no attribute) maps to bvm. */
       crt-overlay > article[data-preset] {
         display: none;
       }
-      crt-overlay[preset='calm'] > article[data-preset='calm'],
-      crt-overlay:not([preset]) > article[data-preset='calm'],
-      crt-overlay[preset='warm'] > article[data-preset='warm'],
-      crt-overlay[preset='cool'] > article[data-preset='cool'],
-      crt-overlay[preset='pvm'] > article[data-preset='pvm'],
-      crt-overlay[preset='consumer'] > article[data-preset='consumer'] {
+      crt-overlay[preset='bvm'] > article[data-preset='bvm'],
+      crt-overlay:not([preset]) > article[data-preset='bvm'],
+      crt-overlay[preset='ntsc'] > article[data-preset='ntsc'],
+      crt-overlay[preset='lisa'] > article[data-preset='lisa'],
+      crt-overlay[preset='vt220'] > article[data-preset='vt220'],
+      crt-overlay[preset='ibm-5151'] > article[data-preset='ibm-5151'] {
         display: block;
       }
 
@@ -114,27 +114,6 @@ import '@labcat/crt/glow.css';
         margin: 0 0 1rem;
       }
 
-      /* Epigraph: closes the article as a postscript — smaller, dimmer than
-         body blockquotes so it reads as colophon, not another body quote. */
-      blockquote.epigraph {
-        margin: 2.5rem 0 0;
-        font-size: 0.92rem;
-        opacity: 0.7;
-        border-left-color: color-mix(in srgb, currentColor 18%, transparent);
-      }
-      blockquote.epigraph .attribution {
-        font-style: normal;
-        font-size: 0.76rem;
-        opacity: 0.8;
-        text-align: right;
-        max-width: 60ch;
-        margin: 0.5rem 0 0;
-        letter-spacing: 0.01em;
-      }
-      blockquote.epigraph .attribution em {
-        font-style: italic;
-      }
-
       .drop-zone {
         margin: 2.5rem 0 0.5rem;
         max-width: 600px;
@@ -183,13 +162,11 @@ import '@labcat/crt/glow.css';
   </head>
   <body>
     <playground-app>
-      <crt-overlay preset="calm">
-        <!-- calm: Clifford Stoll, The Cuckoo's Egg, 1989 (short fair-use
-             excerpt — the astronomer-sysadmin on the discipline of recorded
-             observation) framing Thoreau, Walden, 1854 (Project Gutenberg
-             eBook #205, public domain). Same temperament in two forests:
-             deliberate attention as moral discipline. -->
-        <article data-preset="calm">
+      <crt-overlay preset="bvm">
+        <!-- lisa: Thoreau, Walden, 1854 (Project Gutenberg #205, public
+             domain), framed by the Lisa-window SVG. White P4 phosphor +
+             contemplative reading flow. -->
+        <article data-preset="lisa">
           <h1 class="crt-glow">Where I Lived, and What I Lived For</h1>
           <p class="byline">Henry David Thoreau · Walden · 1854</p>
           <figure class="hero" aria-label="Apple Lisa window with checklist and a smiling Mac icon">
@@ -242,26 +219,12 @@ import '@labcat/crt/glow.css';
             all that was not life, to cut a broad swath and shave close, to drive life into a
             corner, and reduce it to its lowest terms.
           </p>
-          <blockquote class="epigraph">
-            <p>
-              Saved by my logbook. Just like observing at a telescope. If you don't
-              document it, you might as well not have observed it. Sure, you need
-              powerful telescopes and computers. But without a logbook, your
-              observations won't amount to much.
-            </p>
-            <p class="attribution">
-              — Clifford Stoll, <em>The Cuckoo's Egg</em>, 1989
-            </p>
-          </blockquote>
           <div class="drop-zone"></div>
         </article>
 
-        <!-- warm: William Gibson, Neuromancer, 1984 (short fair-use excerpt —
-             Case's Fall, exiled from cyberspace into his own flesh) framing
-             Rumi, Masnavi I:1-4 (Reed-Flute), Nicholson 1925 translation, public
-             domain. Same yearning — being cut from your natural element —
-             across 700 years and one medium. -->
-        <article data-preset="warm">
+        <!-- vt220: Rumi, Masnavi I:1-4 (Reed-Flute), Nicholson 1925 translation,
+             public domain. Amber-terminal phosphor + oscilloscope hero. -->
+        <article data-preset="vt220">
           <h1 class="crt-glow">The Song of the Reed</h1>
           <p class="byline">Jalal ad-Din Rumi · Masnavi I · trans. R. A. Nicholson · 1925</p>
           <figure class="hero" aria-label="Amber oscilloscope tracing a sine wave with a Lissajous figure-8 inset">
@@ -302,14 +265,13 @@ import '@labcat/crt/glow.css';
           <div class="drop-zone"></div>
         </article>
 
-        <!-- cool: Snow Crash chapter 3 Metaverse description (Neal Stephenson,
-             1992, short fair-use excerpt) framing bytes.Equal from the Go
-             standard library (BSD-3-Clause, © The Go Authors). The passage
-             describes Hiro reading a rendered world through goggles — read
-             here through a CRT effect, in keeping with the demo. -->
-        <article data-preset="cool">
-          <h1 class="crt-glow">bytes.Equal</h1>
-          <p class="byline">The Go Authors · src/bytes/bytes.go · BSD-3-Clause</p>
+        <!-- ibm-5151: small NetHack-style dungeon snippet framed by the
+             green-phosphor BBS + DOS SVG. ASCII map and prompt are an
+             original layout in the NetHack glyph vocabulary; the game
+             itself is © the NetHack DevTeam under the NGPL. -->
+        <article data-preset="ibm-5151">
+          <h1 class="crt-glow">the Dungeons of Doom</h1>
+          <p class="byline">the NetHack DevTeam · NetHack · 1987–present</p>
           <figure class="hero" aria-label="Green-phosphor BBS banner and DOS directory listing">
             <svg viewBox="0 0 620 360" xmlns="http://www.w3.org/2000/svg" font-family="ui-monospace, monospace" font-size="14">
               <rect width="620" height="360" fill="#0a0a0a"/>
@@ -333,30 +295,22 @@ import '@labcat/crt/glow.css';
               </g>
             </svg>
           </figure>
-          <p>
-            Reports whether a and b have the same length and contain the same bytes. A nil
-            argument is equivalent to an empty slice.
-          </p>
-          <pre class="code"><span class="crt-glow">func Equal(a, b []byte) bool &lbrace;
-    return string(a) == string(b)
-&rbrace;</span></pre>
-          <blockquote class="epigraph">
-            <p>
-              So Hiro's not actually here at all. He's in a computer-generated universe
-              that his computer is drawing onto his goggles and pumping into his
-              earphones. In the lingo, this imaginary place is known as the Metaverse.
-            </p>
-            <p class="attribution">
-              — Neal Stephenson, <em>Snow Crash</em>, 1992
-            </p>
-          </blockquote>
+          <pre class="code"><span class="crt-glow">  ----------
+  |........|
+  |...&lt;....|######            --------
+  |........|     #            |......|
+  |..@.....|     ##############+...%..|
+  |....d...|                   |....&gt;.|
+  ----------                   --------
+
+  You hear a distant 'gloop! gloop!'                 --More--</span></pre>
           <div class="drop-zone"></div>
         </article>
 
-        <!-- pvm: SMPTE 75% bars over a cool-white broadcast-reference preset.
-             Re-tuned to the editorial aesthetic — restraint matches calm/warm/cool,
-             not the loud pre-pivot studio settings. -->
-        <article data-preset="pvm">
+        <!-- bvm: SMPTE 75% bars over a cool-white broadcast-reference preset.
+             Editorial-restrained tuning (not the loud pre-pivot studio
+             settings) — override --crt-scanline-strength to crank it. -->
+        <article data-preset="bvm">
           <h1 class="crt-glow">broadcast monitoring</h1>
           <p class="byline">SMPTE 75% color bars · NTSC reference</p>
           <figure class="hero" aria-label="SMPTE 75% color bars with reverse-blue castellation and PLUGE strip">
@@ -391,10 +345,10 @@ import '@labcat/crt/glow.css';
           <div class="drop-zone"></div>
         </article>
 
-        <!-- consumer: Channel 4 monoscope over a warm consumer-NTSC preset.
-             Re-tuned for editorial restraint — same gradient builders as
-             calm/warm/cool, no aperture grille, deeper warm vignette. -->
-        <article data-preset="consumer">
+        <!-- ntsc: Channel 4 monoscope over a warm consumer-NTSC preset.
+             Same editorial helpers as the others (no aperture grille,
+             public --crt-scanline-strength override). -->
+        <article data-preset="ntsc">
           <h1 class="crt-glow">we'll return after these messages</h1>
           <p class="byline">Channel 4 test pattern · late-night affiliate</p>
           <figure class="hero" aria-label="Channel 4 monoscope test pattern with convergence circles and color sample dots">

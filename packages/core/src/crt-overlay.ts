@@ -5,7 +5,7 @@ import { animationStyles } from './styles/animations.js';
 import { baseStyles } from './styles/base.js';
 import { presetStyles } from './styles/presets.js';
 
-export type CrtPreset = 'calm' | 'warm' | 'cool' | 'pvm' | 'consumer';
+export type CrtPreset = 'bvm' | 'ntsc' | 'lisa' | 'vt220' | 'ibm-5151';
 
 /* Set, not a counter: HMR can disconnect instances that never finished
    connecting; a counter would underflow. */
@@ -42,13 +42,17 @@ function clearDocumentElement(): void {
  * (per-container) or on the viewport (`fullscreen`). Tuned for editorial
  * restraint — scanlines and grain are atmospheric, not foregrounded.
  *
- * Presets:
- *   `calm` (default) — neutral phosphor, near-invisible scanlines, soft
- *                      warm-white halation. Designed for reading flow.
- *   `warm`           — amber-sepia tube. Wider phosphor bloom, slight
- *                      scanline drift. Late-night writing feel.
- *   `cool`           — green/cyan phosphor. Tighter scanline pitch.
- *                      Code editor / terminal feel.
+ * Presets (hardware-referenced, all sharing editorial restraint):
+ *   `bvm`      (default) — Sony broadcast monitor white. Cool, near-flat
+ *                          vignette, sharp scanlines.
+ *   `ntsc`               — Home NTSC receiver. Warm cast, deeper vignette,
+ *                          softer scanlines, more grain.
+ *   `lisa`               — Apple Lisa / P4 white phosphor. Neutral
+ *                          warm-white, designed for reading flow.
+ *   `vt220`              — DEC VT220 amber terminal. Wider phosphor bloom,
+ *                          slight scanline drift.
+ *   `ibm-5151`           — IBM monochrome green phosphor. Tighter scanline
+ *                          pitch, terminal feel.
  *
  * Halation: tag bright elements with `class="crt-glow"` and import
  * `@labcat/crt/glow.css` once. The component publishes `--crt-glow-shadow`
@@ -78,7 +82,7 @@ export class CrtOverlay extends LitElement {
    * @attr preset
    */
   @property({ type: String, reflect: true })
-  preset: CrtPreset = 'calm';
+  preset: CrtPreset = 'bvm';
 
   /**
    * When set, the overlay covers the viewport and the slot is hidden.

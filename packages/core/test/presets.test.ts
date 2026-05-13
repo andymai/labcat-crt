@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import '../src/index.js';
 import type { CrtOverlay, CrtPreset } from '../src/index.js';
 
-const presets: CrtPreset[] = ['calm', 'warm', 'cool', 'pvm', 'consumer'];
+const presets: CrtPreset[] = ['bvm', 'ntsc', 'lisa', 'vt220', 'ibm-5151'];
 
 async function mount(preset: CrtPreset): Promise<CrtOverlay> {
   return fixture<CrtOverlay>(html`<crt-overlay preset=${preset}></crt-overlay>`);
@@ -55,25 +55,25 @@ describe('preset CSS variables', () => {
   }
 
   it('every preset exposes the editorial-strength CSS vars', async () => {
-    const calm = await mount('calm');
-    expect(hostVar(calm, '--crt-scanline-strength')).toBe('0.22');
-    expect(hostVar(calm, '--crt-vignette-strength')).toBe('0.16');
-    expect(hostVar(calm, '--crt-glow-strength')).toBe('1');
-    expect(hostVar(calm, '--crt-breathing-amplitude')).toBe('0.025');
+    const el = await mount('bvm');
+    expect(hostVar(el, '--crt-scanline-strength')).toBe('0.22');
+    expect(hostVar(el, '--crt-vignette-strength')).toBe('0.16');
+    expect(hostVar(el, '--crt-glow-strength')).toBe('1');
+    expect(hostVar(el, '--crt-breathing-amplitude')).toBe('0.025');
   });
 
   it('--crt-scanline-strength is a public override hook', async () => {
-    const el = await mount('calm');
+    const el = await mount('bvm');
     el.style.setProperty('--crt-scanline-strength', '0.5');
     expect(hostVar(el, '--crt-scanline-strength')).toBe('0.5');
   });
 
   const expectedLines: Record<CrtPreset, string> = {
-    calm: '480',
-    warm: '420',
-    cool: '540',
-    pvm: '480',
-    consumer: '420',
+    bvm: '480',
+    ntsc: '420',
+    lisa: '480',
+    vt220: '420',
+    'ibm-5151': '540',
   };
   for (const preset of presets) {
     it(`${preset} sets its --crt-lines constant`, async () => {

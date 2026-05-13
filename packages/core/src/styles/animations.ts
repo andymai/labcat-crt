@@ -26,8 +26,8 @@ export const animationStyles = css`
     }
   }
 
-  :host([preset='warm']) .overlay,
-  :host([preset='cool']) .overlay {
+  :host([preset='vt220']) .overlay,
+  :host([preset='ibm-5151']) .overlay {
     animation: crt-scanline-drift 36s linear infinite;
   }
 

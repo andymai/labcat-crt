@@ -2,7 +2,7 @@ import type { CrtOverlay, CrtPreset } from '@labcat/crt';
 import { LitElement, css, html } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
 
-const PRESETS: readonly CrtPreset[] = ['calm', 'warm', 'cool', 'pvm', 'consumer'] as const;
+const PRESETS: readonly CrtPreset[] = ['bvm', 'ntsc', 'lisa', 'vt220', 'ibm-5151'] as const;
 
 type SliderKey = 'lines' | 'scanlineStrength' | 'glowStrength' | 'vignetteStrength';
 type SliderSpec = {
@@ -91,11 +91,11 @@ const LIGHT_THEME = {
   scanlineStrength: 0.13,
   gammaBrightness: 1,
   glowByPreset: {
-    calm: '#2e3f55',
-    warm: '#c46c1a',
-    cool: '#1a8a4a',
-    pvm: '#3b4660',
-    consumer: '#a36418',
+    bvm: '#3b4660',
+    ntsc: '#a36418',
+    lisa: '#2e3f55',
+    vt220: '#c46c1a',
+    'ibm-5151': '#1a8a4a',
   } satisfies Record<CrtPreset, string>,
   glowShadow: `
     0 0 0.04em var(--crt-glow-color),
@@ -122,7 +122,7 @@ const CYCLE_INTERVAL_MS = 4000;
 
 @customElement('playground-app')
 export class PlaygroundApp extends LitElement {
-  @property({ type: String }) preset: CrtPreset = 'calm';
+  @property({ type: String }) preset: CrtPreset = 'bvm';
   @property({ type: Boolean }) fullscreen = false;
   @property({ type: Boolean }) disabled = false;
   @property({ type: Boolean }) editing = false;
@@ -220,7 +220,7 @@ export class PlaygroundApp extends LitElement {
     let index = PRESETS.indexOf(this.preset);
     this.#cycleTimer = window.setInterval(() => {
       index = (index + 1) % PRESETS.length;
-      this.preset = PRESETS[index] ?? 'pvm';
+      this.preset = PRESETS[index] ?? 'bvm';
     }, CYCLE_INTERVAL_MS);
   }
 
