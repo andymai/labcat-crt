@@ -8,7 +8,7 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "`<crt-overlay>` paints a CRT phosphor effect on its slotted content\n(per-container) or on the viewport (`fullscreen`).\n\nPresets: `pvm` (Sony broadcast monitor, default), `consumer` (NTSC TV\nwith shimmer), `amber` (VT220 monochrome), `green` (IBM 5151 monochrome),\n`p4-white` (early-80s mono PC monitor).\n\nFidelity tiers:\n  `standard` (default) — pure CSS gradients, scanlines, em-based halation\n                         via `.crt-glow` class binding.\n  `high`               — adds SVG-filter brightness-aware bloom on the\n                         slotted content (all bright pixels glow, not\n                         just `.crt-glow`-tagged) and channel-split\n                         chromatic aberration on the consumer preset.\n  `max`                — adds NTSC composite artifacts (consumer only —\n                         PVMs were RGB-direct) and subtle screen\n                         curvature via `transform: perspective`.\n\nTo enable halation on bright text, import `@labcat/crt/glow.css` once in\nyour app and tag elements with `class=\"crt-glow\"`. The component publishes\nthe halation CSS vars; the imported stylesheet binds them to that class.\n\nRealism scales with the container: every pitch derives from container query\nunits (cqi/cqb fallback) so a 200×150 widget and a 4K fullscreen both\nrender a coherent CRT rather than a fixed-pixel screen filter.\n\n`prefers-reduced-transparency: reduce` silently downgrades `fidelity` to\n`standard`. Note that at `fidelity='max'` the `.content` wrapper's\n`transform: perspective` becomes a containing block for fixed-positioned\ndescendants — slotted `position: fixed` dialogs will anchor to `.content`,\nnot the viewport.",
+          "description": "`<crt-overlay>` paints a subtle CRT phosphor effect on its slotted content\n(per-container) or on the viewport (`fullscreen`). Tuned for editorial\nrestraint — scanlines and grain are atmospheric, not foregrounded.\n\nPresets:\n  `calm` (default) — neutral phosphor, near-invisible scanlines, soft\n                     warm-white halation. Designed for reading flow.\n  `warm`           — amber-sepia tube. Wider phosphor bloom, slight\n                     scanline drift. Late-night writing feel.\n  `cool`           — green/cyan phosphor. Tighter scanline pitch.\n                     Code editor / terminal feel.\n\nHalation: tag bright elements with `class=\"crt-glow\"` and import\n`@labcat/crt/glow.css` once. The component publishes `--crt-glow-shadow`\non the host; glow.css binds it to that class.\n\nRealism scales with the container: grille triad pitch derives from\ncontainer query units (cqi); scanline pitch from the small viewport\nblock-size, so a 200×150 widget and a 4K fullscreen both render a\ncoherent CRT.",
           "name": "CrtOverlay",
           "cssProperties": [
             {
@@ -22,23 +22,30 @@
               "default": "480"
             },
             {
-              "description": "Target horizontal RGB triad count.",
-              "name": "--crt-triads",
-              "default": "480"
+              "description": "Scanline dark-stop opacity, 0..1.",
+              "name": "--crt-scanline-strength",
+              "default": "0.22"
             },
             {
-              "description": "Chromatic aberration horizontal offset for the text-shadow halation (em or px). 0 = no aberration.",
-              "name": "--crt-aberration-x"
+              "description": "Vignette darkening at corners, 0..0.5.",
+              "name": "--crt-vignette-strength",
+              "default": "0.16"
+            },
+            {
+              "description": "Halation alpha multiplier, 0..2.",
+              "name": "--crt-glow-strength",
+              "default": "1"
+            },
+            {
+              "description": "Idle brightness pulse amplitude, 0..0.05.",
+              "name": "--crt-breathing-amplitude",
+              "default": "0.025"
             }
           ],
           "cssParts": [
             {
-              "description": "The painted overlay layer (scanlines, grille, vignette).",
+              "description": "The painted overlay layer (scanlines, grain, vignette).",
               "name": "overlay"
-            },
-            {
-              "description": "The slotted-content wrapper (target of SVG filter chain).",
-              "name": "content"
             }
           ],
           "slots": [
@@ -54,8 +61,8 @@
               "type": {
                 "text": "CrtPreset"
               },
-              "default": "'pvm'",
-              "description": "Which CRT archetype to emulate.",
+              "default": "'calm'",
+              "description": "Which preset to render.",
               "attribute": "preset",
               "reflects": true
             },
@@ -77,19 +84,8 @@
                 "text": "boolean"
               },
               "default": "false",
-              "description": "Turn the effect off without unmounting. Animations pause cleanly so\nre-enabling resumes from a stable state. Halation vars unpublish.",
+              "description": "Turn the effect off without unmounting. Halation vars unpublish.",
               "attribute": "disabled",
-              "reflects": true
-            },
-            {
-              "kind": "field",
-              "name": "fidelity",
-              "type": {
-                "text": "CrtFidelity"
-              },
-              "default": "'standard'",
-              "description": "Visual fidelity tier. `standard` is pure CSS. `high` adds SVG-filter\nbloom and (on the consumer preset) chromatic aberration. `max` adds NTSC\nartifacts (consumer only) and curvature. Auto-downgrades to `standard`\nunder `prefers-reduced-transparency`.",
-              "attribute": "fidelity",
               "reflects": true
             },
             {
@@ -119,8 +115,8 @@
               "type": {
                 "text": "CrtPreset"
               },
-              "default": "'pvm'",
-              "description": "Which CRT archetype to emulate.",
+              "default": "'calm'",
+              "description": "Which preset to render.",
               "fieldName": "preset",
               "attribute": "preset"
             },
@@ -140,19 +136,9 @@
                 "text": "boolean"
               },
               "default": "false",
-              "description": "Turn the effect off without unmounting. Animations pause cleanly so\nre-enabling resumes from a stable state. Halation vars unpublish.",
+              "description": "Turn the effect off without unmounting. Halation vars unpublish.",
               "fieldName": "disabled",
               "attribute": "disabled"
-            },
-            {
-              "name": "fidelity",
-              "type": {
-                "text": "CrtFidelity"
-              },
-              "default": "'standard'",
-              "description": "Visual fidelity tier. `standard` is pure CSS. `high` adds SVG-filter\nbloom and (on the consumer preset) chromatic aberration. `max` adds NTSC\nartifacts (consumer only) and curvature. Auto-downgrades to `standard`\nunder `prefers-reduced-transparency`.",
-              "fieldName": "fidelity",
-              "attribute": "fidelity"
             }
           ],
           "superclass": {
@@ -184,27 +170,6 @@
     },
     {
       "kind": "javascript-module",
-      "path": "src/filters.ts",
-      "declarations": [
-        {
-          "kind": "variable",
-          "name": "crtFilters",
-          "default": "html` <svg class=\"crt-filters\" aria-hidden=\"true\" focusable=\"false\" xmlns=\"http://www.w3.org/2000/svg\" > <defs> <filter id=\"crt-bloom\" x=\"-15%\" y=\"-15%\" width=\"130%\" height=\"130%\" color-interpolation-filters=\"sRGB\" > <feComponentTransfer in=\"SourceGraphic\" result=\"thresholded\"> <feFuncR type=\"linear\" slope=\"2.4\" intercept=\"-0.95\" /> <feFuncG type=\"linear\" slope=\"2.4\" intercept=\"-0.95\" /> <feFuncB type=\"linear\" slope=\"2.4\" intercept=\"-0.95\" /> </feComponentTransfer> <feGaussianBlur in=\"thresholded\" stdDeviation=\"3\" result=\"bloom\" /> <feBlend in=\"bloom\" in2=\"SourceGraphic\" mode=\"screen\" /> </filter> <filter id=\"crt-aberration\" x=\"-5%\" y=\"-5%\" width=\"110%\" height=\"110%\" color-interpolation-filters=\"sRGB\" > <feOffset in=\"SourceGraphic\" dx=\"0.7\" dy=\"0\" result=\"rOff\" /> <feColorMatrix in=\"rOff\" type=\"matrix\" values=\"1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0\" result=\"r\" /> <feColorMatrix in=\"SourceGraphic\" type=\"matrix\" values=\"0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0\" result=\"g\" /> <feOffset in=\"SourceGraphic\" dx=\"-0.7\" dy=\"0\" result=\"bOff\" /> <feColorMatrix in=\"bOff\" type=\"matrix\" values=\"0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 1 0\" result=\"b\" /> <feBlend in=\"r\" in2=\"g\" mode=\"screen\" result=\"rg\" /> <feBlend in=\"rg\" in2=\"b\" mode=\"screen\" /> </filter> <filter id=\"crt-ntsc\" x=\"0%\" y=\"0%\" width=\"100%\" height=\"100%\" color-interpolation-filters=\"sRGB\" > <feTurbulence type=\"fractalNoise\" baseFrequency=\"0.6 0.04\" numOctaves=\"2\" seed=\"3\" result=\"noise\" /> <feDisplacementMap in=\"SourceGraphic\" in2=\"noise\" scale=\"0.8\" xChannelSelector=\"R\" yChannelSelector=\"G\" /> </filter> </defs> </svg> `"
-        }
-      ],
-      "exports": [
-        {
-          "kind": "js",
-          "name": "crtFilters",
-          "declaration": {
-            "name": "crtFilters",
-            "module": "src/filters.ts"
-          }
-        }
-      ]
-    },
-    {
-      "kind": "javascript-module",
       "path": "src/index.ts",
       "declarations": [],
       "exports": [
@@ -213,14 +178,6 @@
           "name": "CrtOverlay",
           "declaration": {
             "name": "CrtOverlay",
-            "module": "./crt-overlay.js"
-          }
-        },
-        {
-          "kind": "js",
-          "name": "CrtFidelity",
-          "declaration": {
-            "name": "CrtFidelity",
             "module": "./crt-overlay.js"
           }
         },
@@ -241,7 +198,7 @@
         {
           "kind": "variable",
           "name": "animationStyles",
-          "default": "css` @keyframes crt-scanline-drift { from { background-position-y: 0px, 0, 0; } to { background-position-y: 0px, 0, calc(var(--crt-pitch) * 20); } } @keyframes crt-phosphor-shimmer { 0% { opacity: 1; } 45% { opacity: 0.97; } 55% { opacity: 1; } 100% { opacity: 0.985; } } :host([preset='consumer']) .overlay, :host([preset='amber']) .overlay, :host([preset='green']) .overlay, :host([preset='p4-white']) .overlay { animation: crt-scanline-drift 30s linear infinite; } :host([preset='consumer']) .overlay { animation: crt-scanline-drift 30s linear infinite, crt-phosphor-shimmer 120ms steps(2, end) infinite; } :host([disabled]) .overlay { animation: none; } @media (prefers-reduced-motion: reduce) { :host .overlay { animation: none; } } @media (forced-colors: active) { :host, :host([fullscreen]) { display: none; } } @media print { :host, :host([fullscreen]) { display: none; } } `"
+          "default": "css` @keyframes crt-scanline-drift { from { background-position-y: 0px, 0, 0; } to { background-position-y: 0px, 0, calc(var(--crt-pitch) * 20); } } @keyframes crt-breathing { 0%, 100% { filter: brightness(calc(1 - var(--crt-breathing-amplitude) * 0.5)) saturate(calc(1 - var(--crt-breathing-amplitude) * 0.4)); } 50% { filter: brightness(calc(1 + var(--crt-breathing-amplitude) * 0.5)) saturate(calc(1 + var(--crt-breathing-amplitude) * 0.4)); } } :host([preset='warm']) .overlay, :host([preset='cool']) .overlay { animation: crt-scanline-drift 36s linear infinite; } :host(:not([disabled])) .overlay { animation-name: var(--crt-overlay-animations, none); } /* Breathing applies to the overlay's backdrop-filter independently of scanline-drift so both can run together. */ :host(:not([disabled])) { animation: crt-breathing 8s ease-in-out infinite; } :host([disabled]) .overlay, :host([disabled]) { animation: none; } @media (prefers-reduced-motion: reduce) { :host .overlay, :host { animation: none; } } @media (forced-colors: active) { :host, :host([fullscreen]) { display: none; } } @media print { :host, :host([fullscreen]) { display: none; } } `"
         }
       ],
       "exports": [
@@ -262,7 +219,7 @@
         {
           "kind": "variable",
           "name": "baseStyles",
-          "default": "css` :host { display: block; position: relative; isolation: isolate; container-type: inline-size; --crt-lines: 480; --crt-triads: 480; --crt-glow-color: currentColor; --crt-glow-shadow: 0 0 0.03em var(--crt-glow-color), 0 0 0.25em color-mix(in srgb, var(--crt-glow-color) 70%, transparent), 0 0 0.875em color-mix(in srgb, var(--crt-glow-color) 30%, transparent); --crt-aberration-x: 0; --crt-aberration-shadow: 0 0 0 transparent; } :host([fullscreen]) { display: contents; } :host([fullscreen]) ::slotted(*) { display: none; } .overlay { position: absolute; inset: 0; pointer-events: none; z-index: 1; /* Declared on .overlay (not :host) because a container cannot query itself; cqb/cqi must resolve in a descendant. Pitch floor is 3px (not 1px or less) because Safari's gradient rasterizer collapses sub-pixel stops into solid bands — our gradients carry 7 stops per pitch, and the spacing has to stay above one device pixel for Safari to render scanlines as scanlines. */ --crt-pitch: clamp(3px, 100cqb / var(--crt-lines), 6px); --crt-grille-pitch: clamp(3px, 100cqi / var(--crt-triads), 6px); --crt-noise-size: clamp(120px, 18cqmin, 360px); background-image: var(--crt-noise, none), var(--crt-grille, none), var(--crt-scanlines, none); background-size: var(--crt-noise-size) var(--crt-noise-size), auto, auto; background-repeat: repeat, repeat, repeat; mix-blend-mode: var(--crt-blend-mode, normal); -webkit-backdrop-filter: contrast(var(--crt-gamma-contrast, 1)) brightness(var(--crt-gamma-brightness, 1)) saturate(var(--crt-gamma-saturate, 1)); backdrop-filter: contrast(var(--crt-gamma-contrast, 1)) brightness(var(--crt-gamma-brightness, 1)) saturate(var(--crt-gamma-saturate, 1)); } .overlay::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: var(--crt-corner-warm, transparent), var(--crt-corner-cool, transparent), var(--crt-vignette, transparent); } :host([fullscreen]) .overlay { position: fixed; inset: 0; z-index: var(--crt-z, 9999); } :host([disabled]) .overlay { display: none; } :host([disabled]) { --crt-glow-shadow: none; --crt-aberration-shadow: 0 0 0 transparent; } /* z-index keeps .content below .overlay so scanlines paint over bloom, not the other way around. */ .content { position: relative; z-index: 0; } .crt-filters { position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none; } /* Filter chain order is physical: aberration first (convergence error at the electron gun) then bloom (phosphor halation diffuses the already- misregistered beams). Reversing it blooms the source then splits the bloom's halos, which reads as a digital glitch, not a CRT. :not([disabled]) gates here (not via a separate override rule) because the consumer+max selector outweighs any simple [disabled] reset on specificity. */ :host([fidelity='high']:not([disabled])) .content, :host([fidelity='max']:not([disabled])) .content { filter: url(#crt-bloom); isolation: isolate; } :host([fidelity='high'][preset='consumer']:not([disabled])) .content, :host([fidelity='max'][preset='consumer']:not([disabled])) .content { filter: url(#crt-aberration) url(#crt-bloom); } :host([fidelity='max']:not([disabled])) .content { transform: perspective(800px) rotateX(0.4deg); transform-origin: center top; } :host([fidelity='max'][preset='consumer']:not([disabled])) .content { filter: url(#crt-aberration) url(#crt-bloom) url(#crt-ntsc); } /* Reduced-motion is intentionally NOT folded in — the filters and the static perspective tilt are not motion. */ @media (prefers-reduced-transparency: reduce) { :host([fidelity='high']) .content, :host([fidelity='max']) .content { filter: none; transform: none; } } `"
+          "default": "css` :host { display: block; position: relative; isolation: isolate; container-type: inline-size; --crt-lines: 480; --crt-triads: 480; /* Editorial defaults — overridable on the host. */ --crt-scanline-strength: 0.22; --crt-vignette-strength: 0.16; --crt-glow-strength: 1; --crt-breathing-amplitude: 0.025; --crt-glow-color: currentColor; --crt-glow-shadow: 0 0 0.03em var(--crt-glow-color), 0 0 0.22em color-mix(in srgb, var(--crt-glow-color) calc(60% * var(--crt-glow-strength)), transparent), 0 0 0.7em color-mix(in srgb, var(--crt-glow-color) calc(25% * var(--crt-glow-strength)), transparent); --crt-aberration-x: 0; --crt-aberration-shadow: 0 0 0 transparent; } :host([fullscreen]) { display: contents; } :host([fullscreen]) ::slotted(*) { display: none; } .overlay { position: absolute; inset: 0; pointer-events: none; z-index: 1; /* Pitch floor is 3px because Safari's gradient rasterizer collapses sub-pixel stops into solid bands. */ --crt-pitch: clamp(3px, 100cqb / var(--crt-lines), 6px); --crt-grille-pitch: clamp(3px, 100cqi / var(--crt-triads), 6px); --crt-noise-size: clamp(120px, 18cqmin, 360px); background-image: var(--crt-noise, none), var(--crt-grille, none), var(--crt-scanlines, none); background-size: var(--crt-noise-size) var(--crt-noise-size), auto, auto; background-repeat: repeat, repeat, repeat; -webkit-backdrop-filter: contrast(var(--crt-gamma-contrast, 1)) brightness(var(--crt-gamma-brightness, 1)) saturate(var(--crt-gamma-saturate, 1)); backdrop-filter: contrast(var(--crt-gamma-contrast, 1)) brightness(var(--crt-gamma-brightness, 1)) saturate(var(--crt-gamma-saturate, 1)); } .overlay::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: var(--crt-vignette, transparent); } :host([fullscreen]) .overlay { position: fixed; inset: 0; z-index: var(--crt-z, 9999); } :host([disabled]) .overlay { display: none; } :host([disabled]) { --crt-glow-shadow: none; --crt-aberration-shadow: 0 0 0 transparent; } `"
         }
       ],
       "exports": [
@@ -283,7 +240,7 @@
         {
           "kind": "variable",
           "name": "presetStyles",
-          "default": "css` /* PVM: Sony BVM/PVM broadcast reference, 480 TVL × 480 lines. */ :host, :host([preset='pvm']) { --crt-lines: 480; --crt-triads: 480; --crt-gamma-contrast: 1.06; --crt-gamma-brightness: 0.98; --crt-gamma-saturate: 1.1; --crt-glow-color: currentColor; } :host([preset='pvm']) .overlay, :host(:not([preset])) .overlay { --crt-noise: ${noiseSvg(0.025)}; --crt-grille: repeating-linear-gradient( to right, rgba(255, 80, 80, 0.06) 0, rgba(255, 80, 80, 0.06) calc(var(--crt-grille-pitch) / 3), rgba(80, 255, 80, 0.06) calc(var(--crt-grille-pitch) / 3), rgba(80, 255, 80, 0.06) calc(var(--crt-grille-pitch) * 2 / 3), rgba(80, 80, 255, 0.06) calc(var(--crt-grille-pitch) * 2 / 3), rgba(80, 80, 255, 0.06) var(--crt-grille-pitch) ); --crt-scanlines: repeating-linear-gradient( to bottom, rgba(0, 0, 0, 0.55) 0, rgba(0, 0, 0, 0.22) calc(var(--crt-pitch) * 0.2), rgba(0, 0, 0, 0) calc(var(--crt-pitch) * 0.4), rgba(255, 255, 255, 0.14) calc(var(--crt-pitch) * 0.5), rgba(0, 0, 0, 0) calc(var(--crt-pitch) * 0.6), rgba(0, 0, 0, 0.22) calc(var(--crt-pitch) * 0.8), rgba(0, 0, 0, 0.55) var(--crt-pitch) ); --crt-corner-warm: radial-gradient( ellipse at center, transparent 70%, rgba(255, 120, 80, 0.04) 92%, transparent 100% ); --crt-corner-cool: radial-gradient( ellipse at center, transparent 78%, rgba(80, 140, 255, 0.04) 100% ); --crt-vignette: radial-gradient( ellipse at center, transparent 60%, rgba(0, 0, 0, 0.2) 100% ); } /* Consumer NTSC: 320 TVL triads plus a horizontal interruption layer to read as a shadow mask rather than aperture grille. */ :host([preset='consumer']) { --crt-lines: 480; --crt-triads: 320; --crt-gamma-contrast: 1.06; --crt-gamma-brightness: 0.96; --crt-gamma-saturate: 1.04; --crt-glow-color: currentColor; --crt-aberration-x: 0.04em; --crt-aberration-shadow: var(--crt-aberration-x) 0 0 rgba(255, 80, 80, 0.25), calc(var(--crt-aberration-x) * -1) 0 0 rgba(80, 140, 255, 0.25); } :host([preset='consumer']) .overlay { --crt-noise: ${noiseSvg(0.04)}; --crt-grille: repeating-linear-gradient( to right, rgba(255, 60, 60, 0.05) 0, rgba(255, 60, 60, 0.05) calc(var(--crt-grille-pitch) / 3), rgba(60, 255, 60, 0.05) calc(var(--crt-grille-pitch) / 3), rgba(60, 255, 60, 0.05) calc(var(--crt-grille-pitch) * 2 / 3), rgba(60, 60, 255, 0.05) calc(var(--crt-grille-pitch) * 2 / 3), rgba(60, 60, 255, 0.05) var(--crt-grille-pitch) ), repeating-linear-gradient( to bottom, rgba(0, 0, 0, 0.04) 0, rgba(0, 0, 0, 0.04) calc(var(--crt-pitch) * 0.5), transparent calc(var(--crt-pitch) * 0.5), transparent var(--crt-pitch) ); --crt-scanlines: repeating-linear-gradient( to bottom, rgba(0, 0, 0, 0.35) 0, rgba(0, 0, 0, 0.12) calc(var(--crt-pitch) * 0.2), rgba(0, 0, 0, 0) calc(var(--crt-pitch) * 0.4), rgba(255, 255, 255, 0.1) calc(var(--crt-pitch) * 0.5), rgba(0, 0, 0, 0) calc(var(--crt-pitch) * 0.6), rgba(0, 0, 0, 0.12) calc(var(--crt-pitch) * 0.8), rgba(0, 0, 0, 0.35) var(--crt-pitch) ); --crt-corner-warm: radial-gradient( ellipse at center, transparent 65%, rgba(255, 120, 80, 0.04) 95%, transparent 100% ); --crt-corner-cool: radial-gradient( ellipse at center, transparent 60%, rgba(80, 140, 255, 0.09) 100% ); --crt-vignette: radial-gradient( ellipse at center, transparent 40%, rgba(0, 0, 0, 0.38) 100% ); } /* Amber: VT220-style single-phosphor warm amber, 400 lines. */ :host([preset='amber']) { --crt-lines: 400; --crt-triads: 480; --crt-gamma-contrast: 1.1; --crt-gamma-brightness: 0.97; --crt-gamma-saturate: 0.6; --crt-glow-color: #ffb43a; --crt-glow-shadow: 0 0 0.03em var(--crt-glow-color), 0 0 0.31em color-mix(in srgb, var(--crt-glow-color) 75%, transparent), 0 0 1.125em color-mix(in srgb, var(--crt-glow-color) 35%, transparent); } :host([preset='amber']) .overlay { --crt-noise: ${noiseSvg(0.03)}; --crt-grille: none; --crt-scanlines: repeating-linear-gradient( to bottom, rgba(20, 8, 0, 0.6) 0, rgba(20, 8, 0, 0.24) calc(var(--crt-pitch) * 0.2), rgba(20, 8, 0, 0) calc(var(--crt-pitch) * 0.4), rgba(255, 200, 120, 0.12) calc(var(--crt-pitch) * 0.5), rgba(20, 8, 0, 0) calc(var(--crt-pitch) * 0.6), rgba(20, 8, 0, 0.24) calc(var(--crt-pitch) * 0.8), rgba(20, 8, 0, 0.6) var(--crt-pitch) ); --crt-corner-warm: radial-gradient( ellipse at center, transparent 60%, rgba(255, 140, 40, 0.06) 100% ); --crt-corner-cool: none; --crt-vignette: radial-gradient( ellipse at center, transparent 50%, rgba(0, 0, 0, 0.32) 100% ); } /* P4 white: Apple Lisa / IBM mono adapter, 364 lines (Lisa's 720×364 bitmap mode). */ :host([preset='p4-white']) { --crt-lines: 364; --crt-triads: 480; --crt-gamma-contrast: 1.08; --crt-gamma-brightness: 0.98; --crt-gamma-saturate: 0.4; --crt-glow-color: #f0f0e8; --crt-glow-shadow: 0 0 0.03em var(--crt-glow-color), 0 0 0.31em color-mix(in srgb, var(--crt-glow-color) 75%, transparent), 0 0 1em color-mix(in srgb, var(--crt-glow-color) 30%, transparent); } :host([preset='p4-white']) .overlay { --crt-noise: ${noiseSvg(0.025)}; --crt-grille: none; --crt-scanlines: repeating-linear-gradient( to bottom, rgba(15, 15, 18, 0.55) 0, rgba(15, 15, 18, 0.22) calc(var(--crt-pitch) * 0.2), rgba(15, 15, 18, 0) calc(var(--crt-pitch) * 0.4), rgba(240, 240, 232, 0.12) calc(var(--crt-pitch) * 0.5), rgba(15, 15, 18, 0) calc(var(--crt-pitch) * 0.6), rgba(15, 15, 18, 0.22) calc(var(--crt-pitch) * 0.8), rgba(15, 15, 18, 0.55) var(--crt-pitch) ); --crt-corner-warm: none; --crt-corner-cool: radial-gradient( ellipse at center, transparent 65%, rgba(220, 230, 240, 0.03) 100% ); --crt-vignette: radial-gradient( ellipse at center, transparent 55%, rgba(0, 0, 0, 0.28) 100% ); } /* Green: IBM 5151 P31 green phosphor, 350 lines (text-mode raster). */ :host([preset='green']) { --crt-lines: 350; --crt-triads: 480; --crt-gamma-contrast: 1.1; --crt-gamma-brightness: 0.97; --crt-gamma-saturate: 0.5; --crt-glow-color: #4cff8a; --crt-glow-shadow: 0 0 0.03em var(--crt-glow-color), 0 0 0.31em color-mix(in srgb, var(--crt-glow-color) 75%, transparent), 0 0 1.125em color-mix(in srgb, var(--crt-glow-color) 35%, transparent); } :host([preset='green']) .overlay { --crt-noise: ${noiseSvg(0.03)}; --crt-grille: none; --crt-scanlines: repeating-linear-gradient( to bottom, rgba(0, 20, 4, 0.6) 0, rgba(0, 20, 4, 0.24) calc(var(--crt-pitch) * 0.2), rgba(0, 20, 4, 0) calc(var(--crt-pitch) * 0.4), rgba(120, 255, 160, 0.12) calc(var(--crt-pitch) * 0.5), rgba(0, 20, 4, 0) calc(var(--crt-pitch) * 0.6), rgba(0, 20, 4, 0.24) calc(var(--crt-pitch) * 0.8), rgba(0, 20, 4, 0.6) var(--crt-pitch) ); --crt-corner-warm: none; --crt-corner-cool: radial-gradient( ellipse at center, transparent 60%, rgba(60, 255, 120, 0.05) 100% ); --crt-vignette: radial-gradient( ellipse at center, transparent 50%, rgba(0, 0, 0, 0.32) 100% ); } `"
+          "default": "css` /* ----- calm (default) ---------------------------------------------- */ :host, :host([preset='calm']) { --crt-lines: 480; --crt-gamma-contrast: 1.04; --crt-gamma-brightness: 0.99; --crt-gamma-saturate: 1.02; --crt-glow-color: #fdf4ea; --crt-glow-shadow: 0 0 0.04em var(--crt-glow-color), 0 0 0.32em color-mix(in srgb, var(--crt-glow-color) calc(50% * var(--crt-glow-strength)), transparent), 0 0 1em color-mix(in srgb, var(--crt-glow-color) calc(18% * var(--crt-glow-strength)), transparent); } :host([preset='calm']) .overlay, :host(:not([preset])) .overlay { --crt-noise: ${grainSvg(0.02)}; --crt-grille: none; --crt-scanlines: ${scanlines('10, 10, 12')}; --crt-vignette: radial-gradient( ellipse at center, transparent 55%, rgba(0, 0, 0, var(--crt-vignette-strength)) 100% ); } /* ----- warm (amber-sepia) ------------------------------------------- */ :host([preset='warm']) { --crt-lines: 420; --crt-gamma-contrast: 1.05; --crt-gamma-brightness: 0.97; --crt-gamma-saturate: 0.78; --crt-glow-color: #ffc879; --crt-glow-shadow: 0 0 0.04em var(--crt-glow-color), 0 0 0.38em color-mix(in srgb, var(--crt-glow-color) calc(65% * var(--crt-glow-strength)), transparent), 0 0 1.1em color-mix(in srgb, var(--crt-glow-color) calc(28% * var(--crt-glow-strength)), transparent); } :host([preset='warm']) .overlay { --crt-noise: ${grainSvg(0.025)}; --crt-grille: none; --crt-scanlines: ${scanlines('22, 12, 4')}; --crt-vignette: radial-gradient( ellipse at center, transparent 50%, rgba(28, 14, 0, calc(var(--crt-vignette-strength) * 1.5)) 100% ); } /* ----- cool (green-cyan terminal) ----------------------------------- */ :host([preset='cool']) { --crt-lines: 540; --crt-gamma-contrast: 1.06; --crt-gamma-brightness: 0.98; --crt-gamma-saturate: 0.85; --crt-glow-color: #aaf0cf; --crt-glow-shadow: 0 0 0.04em var(--crt-glow-color), 0 0 0.34em color-mix(in srgb, var(--crt-glow-color) calc(55% * var(--crt-glow-strength)), transparent), 0 0 0.95em color-mix(in srgb, var(--crt-glow-color) calc(22% * var(--crt-glow-strength)), transparent); } :host([preset='cool']) .overlay { --crt-noise: ${grainSvg(0.02)}; --crt-grille: none; --crt-scanlines: ${scanlines('4, 18, 10')}; --crt-vignette: radial-gradient( ellipse at center, transparent 55%, rgba(0, 14, 8, calc(var(--crt-vignette-strength) * 1.3)) 100% ); } `"
         }
       ],
       "exports": [

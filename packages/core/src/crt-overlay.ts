@@ -1,13 +1,11 @@
 import { LitElement, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 
-import { crtFilters } from './filters.js';
 import { animationStyles } from './styles/animations.js';
 import { baseStyles } from './styles/base.js';
 import { presetStyles } from './styles/presets.js';
 
-export type CrtPreset = 'pvm' | 'consumer' | 'amber' | 'green' | 'p4-white';
-export type CrtFidelity = 'standard' | 'high' | 'max';
+export type CrtPreset = 'calm' | 'warm' | 'cool';
 
 /* Set, not a counter: HMR can disconnect instances that never finished
    connecting; a counter would underflow. */
@@ -40,58 +38,47 @@ function clearDocumentElement(): void {
 }
 
 /**
- * `<crt-overlay>` paints a CRT phosphor effect on its slotted content
- * (per-container) or on the viewport (`fullscreen`).
+ * `<crt-overlay>` paints a subtle CRT phosphor effect on its slotted content
+ * (per-container) or on the viewport (`fullscreen`). Tuned for editorial
+ * restraint — scanlines and grain are atmospheric, not foregrounded.
  *
- * Presets: `pvm` (Sony broadcast monitor, default), `consumer` (NTSC TV
- * with shimmer), `amber` (VT220 monochrome), `green` (IBM 5151 monochrome),
- * `p4-white` (early-80s mono PC monitor).
+ * Presets:
+ *   `calm` (default) — neutral phosphor, near-invisible scanlines, soft
+ *                      warm-white halation. Designed for reading flow.
+ *   `warm`           — amber-sepia tube. Wider phosphor bloom, slight
+ *                      scanline drift. Late-night writing feel.
+ *   `cool`           — green/cyan phosphor. Tighter scanline pitch.
+ *                      Code editor / terminal feel.
  *
- * Fidelity tiers:
- *   `standard` (default) — pure CSS gradients, scanlines, em-based halation
- *                          via `.crt-glow` class binding.
- *   `high`               — adds SVG-filter brightness-aware bloom on the
- *                          slotted content (all bright pixels glow, not
- *                          just `.crt-glow`-tagged) and channel-split
- *                          chromatic aberration on the consumer preset.
- *   `max`                — adds NTSC composite artifacts (consumer only —
- *                          PVMs were RGB-direct) and subtle screen
- *                          curvature via `transform: perspective`.
+ * Halation: tag bright elements with `class="crt-glow"` and import
+ * `@labcat/crt/glow.css` once. The component publishes `--crt-glow-shadow`
+ * on the host; glow.css binds it to that class.
  *
- * To enable halation on bright text, import `@labcat/crt/glow.css` once in
- * your app and tag elements with `class="crt-glow"`. The component publishes
- * the halation CSS vars; the imported stylesheet binds them to that class.
- *
- * Realism scales with the container: every pitch derives from container query
- * units (cqi/cqb fallback) so a 200×150 widget and a 4K fullscreen both
- * render a coherent CRT rather than a fixed-pixel screen filter.
- *
- * `prefers-reduced-transparency: reduce` silently downgrades `fidelity` to
- * `standard`. Note that at `fidelity='max'` the `.content` wrapper's
- * `transform: perspective` becomes a containing block for fixed-positioned
- * descendants — slotted `position: fixed` dialogs will anchor to `.content`,
- * not the viewport.
+ * Realism scales with the container: grille triad pitch derives from
+ * container query units (cqi); scanline pitch from the small viewport
+ * block-size, so a 200×150 widget and a 4K fullscreen both render a
+ * coherent CRT.
  *
  * @element crt-overlay
  * @slot - Content to overlay. Ignored in `fullscreen` mode.
- * @csspart overlay - The painted overlay layer (scanlines, grille, vignette).
- * @csspart content - The slotted-content wrapper (target of SVG filter chain).
+ * @csspart overlay - The painted overlay layer (scanlines, grain, vignette).
  * @cssprop [--crt-z=9999] - z-index for fullscreen mode.
  * @cssprop [--crt-lines=480] - Target vertical scanline count.
- * @cssprop [--crt-triads=480] - Target horizontal RGB triad count.
- * @cssprop [--crt-aberration-x] - Chromatic aberration horizontal offset
- *   for the text-shadow halation (em or px). 0 = no aberration.
+ * @cssprop [--crt-scanline-strength=0.22] - Scanline dark-stop opacity, 0..1.
+ * @cssprop [--crt-vignette-strength=0.16] - Vignette darkening at corners, 0..0.5.
+ * @cssprop [--crt-glow-strength=1] - Halation alpha multiplier, 0..2.
+ * @cssprop [--crt-breathing-amplitude=0.025] - Idle brightness pulse amplitude, 0..0.05.
  */
 @customElement('crt-overlay')
 export class CrtOverlay extends LitElement {
   static override styles = [baseStyles, animationStyles, presetStyles];
 
   /**
-   * Which CRT archetype to emulate.
+   * Which preset to render.
    * @attr preset
    */
   @property({ type: String, reflect: true })
-  preset: CrtPreset = 'pvm';
+  preset: CrtPreset = 'calm';
 
   /**
    * When set, the overlay covers the viewport and the slot is hidden.
@@ -103,22 +90,11 @@ export class CrtOverlay extends LitElement {
   fullscreen = false;
 
   /**
-   * Turn the effect off without unmounting. Animations pause cleanly so
-   * re-enabling resumes from a stable state. Halation vars unpublish.
+   * Turn the effect off without unmounting. Halation vars unpublish.
    * @attr disabled
    */
   @property({ type: Boolean, reflect: true })
   disabled = false;
-
-  /**
-   * Visual fidelity tier. `standard` is pure CSS. `high` adds SVG-filter
-   * bloom and (on the consumer preset) chromatic aberration. `max` adds NTSC
-   * artifacts (consumer only) and curvature. Auto-downgrades to `standard`
-   * under `prefers-reduced-transparency`.
-   * @attr fidelity
-   */
-  @property({ type: String, reflect: true })
-  fidelity: CrtFidelity = 'standard';
 
   override connectedCallback(): void {
     super.connectedCallback();
@@ -140,9 +116,8 @@ export class CrtOverlay extends LitElement {
 
   override render() {
     return html`
-      <div part="content" class="content"><slot></slot></div>
+      <slot></slot>
       <div part="overlay" class="overlay" aria-hidden="true"></div>
-      ${crtFilters}
     `;
   }
 

@@ -1,9 +1,8 @@
-import type { CrtFidelity, CrtOverlay, CrtPreset } from '@labcat/crt';
+import type { CrtOverlay, CrtPreset } from '@labcat/crt';
 import { LitElement, css, html } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
 
-const PRESETS: readonly CrtPreset[] = ['pvm', 'consumer', 'amber', 'green', 'p4-white'] as const;
-const FIDELITIES: readonly CrtFidelity[] = ['standard', 'high', 'max'] as const;
+const PRESETS: readonly CrtPreset[] = ['calm', 'warm', 'cool'] as const;
 
 type StageSizeKey = 'free' | 'mobile' | 'tablet' | 'desktop' | '4k' | 'ultrawide';
 const STAGE_SIZES: readonly { key: StageSizeKey; label: string }[] = [
@@ -15,7 +14,7 @@ const STAGE_SIZES: readonly { key: StageSizeKey; label: string }[] = [
   { key: 'ultrawide', label: '21:9' },
 ] as const;
 
-type SliderKey = 'contrast' | 'brightness' | 'saturate' | 'lines' | 'aberration';
+type SliderKey = 'lines' | 'scanlineStrength' | 'glowStrength' | 'vignetteStrength';
 type SliderTier = 'quick' | 'advanced';
 type SliderSpec = {
   key: SliderKey;
@@ -25,54 +24,42 @@ type SliderSpec = {
   max: number;
   step: number;
   tier: SliderTier;
-  unit?: 'px';
 };
 
 const SLIDERS: readonly SliderSpec[] = [
   { key: 'lines', var: '--crt-lines', label: 'lines', min: 200, max: 700, step: 1, tier: 'quick' },
   {
-    key: 'aberration',
-    var: '--crt-aberration-x',
-    label: 'aberration',
+    key: 'scanlineStrength',
+    var: '--crt-scanline-strength',
+    label: 'scanlines',
+    min: 0,
+    max: 0.6,
+    step: 0.01,
+    tier: 'quick',
+  },
+  {
+    key: 'glowStrength',
+    var: '--crt-glow-strength',
+    label: 'glow',
     min: 0,
     max: 2,
     step: 0.05,
     tier: 'advanced',
-    unit: 'px',
   },
   {
-    key: 'contrast',
-    var: '--crt-gamma-contrast',
-    label: 'contrast',
-    min: 0.8,
-    max: 1.4,
-    step: 0.01,
-    tier: 'advanced',
-  },
-  {
-    key: 'brightness',
-    var: '--crt-gamma-brightness',
-    label: 'brightness',
-    min: 0.7,
-    max: 1.2,
-    step: 0.01,
-    tier: 'advanced',
-  },
-  {
-    key: 'saturate',
-    var: '--crt-gamma-saturate',
-    label: 'saturate',
+    key: 'vignetteStrength',
+    var: '--crt-vignette-strength',
+    label: 'vignette',
     min: 0,
-    max: 1.5,
+    max: 0.5,
     step: 0.01,
     tier: 'advanced',
   },
 ] as const;
 
-type LayerKey = 'scanlines' | 'grille';
+type LayerKey = 'scanlines';
 const LAYERS: readonly { key: LayerKey; var: string; label: string }[] = [
   { key: 'scanlines', var: '--crt-scanlines', label: 'scanlines' },
-  { key: 'grille', var: '--crt-grille', label: 'aperture grille' },
 ] as const;
 
 /* Slider, not a checkbox: at preset-default alpha (2.5%–4%) noise is barely
@@ -97,14 +84,8 @@ function readPresetNoiseAlpha(overlay: CrtOverlay): number {
   return Number.isFinite(parsed) ? parsed : NOISE_ALPHA_FALLBACK;
 }
 
-/*
- * Light content theme: warm cream paper + near-black text. Each preset gets
- * its own light-mode glow color because the dark-mode defaults break here:
- *   - pvm/consumer use `currentColor`, which becomes dark text → invisible
- *   - p4-white uses near-white (#f0f0e8) → invisible on cream
- *   - amber's #ffb43a washes out; needs a deeper amber to read on cream
- *   - green's #4cff8a is vivid enough to keep
- */
+/* Light theme: each preset gets a darker glow color since the dark-mode
+   warm-white/amber/green tints would be invisible on cream paper. */
 type ContentTheme = 'dark' | 'light';
 const LIGHT_THEME = {
   bg: '#f0ece4',
@@ -112,23 +93,20 @@ const LIGHT_THEME = {
   codeBg: 'rgba(0, 0, 0, 0.08)',
 } as const;
 const LIGHT_GLOW_BY_PRESET: Record<CrtPreset, string> = {
-  pvm: '#2a4a7a',
-  consumer: '#a04020',
-  amber: '#c0651c',
-  green: '#1a6a3a',
-  'p4-white': '#3a3a3a',
+  calm: '#3a3a3a',
+  warm: '#a8551c',
+  cool: '#1a6a3a',
 };
 
 const CYCLE_INTERVAL_MS = 4000;
 
 @customElement('playground-app')
 export class PlaygroundApp extends LitElement {
-  @property({ type: String }) preset: CrtPreset = 'pvm';
+  @property({ type: String }) preset: CrtPreset = 'calm';
   @property({ type: Boolean }) fullscreen = false;
   @property({ type: Boolean }) disabled = false;
   @property({ type: Boolean }) editing = false;
   @property({ type: String }) contentTheme: ContentTheme = 'dark';
-  @property({ type: String }) fidelity: CrtFidelity = 'high';
 
   @state() private stageSize: StageSizeKey = 'free';
 
@@ -142,18 +120,16 @@ export class PlaygroundApp extends LitElement {
 
   @state() private layersOff: Record<LayerKey, boolean> = {
     scanlines: false,
-    grille: false,
   };
 
-  @state() private noiseAlpha = 0.03;
+  @state() private noiseAlpha = NOISE_ALPHA_FALLBACK;
   @state() private noiseOverridden = false;
 
   @state() private sliderValues: Record<SliderKey, number> = {
-    contrast: 1,
-    brightness: 1,
-    saturate: 1,
     lines: 480,
-    aberration: 0,
+    scanlineStrength: 0.22,
+    glowStrength: 1,
+    vignetteStrength: 0.16,
   };
 
   @state() private overrides = new Set<string>();
@@ -261,12 +237,8 @@ export class PlaygroundApp extends LitElement {
     const next = { ...this.sliderValues };
     for (const s of SLIDERS) {
       if (this.overrides.has(s.var)) continue;
-      const raw = cs.getPropertyValue(s.var).trim();
-      const parsed = Number.parseFloat(raw);
-      if (!Number.isFinite(parsed)) continue;
-      // Preset aberration defaults are em-based; the slider operates in px.
-      // 1em ≈ 16px (root font size), so normalize for an honest readout.
-      next[s.key] = s.key === 'aberration' && raw.includes('em') ? parsed * 16 : parsed;
+      const parsed = Number.parseFloat(cs.getPropertyValue(s.var));
+      if (Number.isFinite(parsed)) next[s.key] = parsed;
     }
     this.sliderValues = next;
     if (!this.noiseOverridden) {
@@ -291,7 +263,6 @@ export class PlaygroundApp extends LitElement {
       'noiseOverridden',
       'contentTheme',
       'stageSize',
-      'fidelity',
     ];
     if (overlayKeys.some((k) => changed.has(k))) this.#applyAll();
     if (changed.has('userImageUrl') || changed.has('dragOver') || changed.has('preset')) {
@@ -309,7 +280,6 @@ export class PlaygroundApp extends LitElement {
     o.preset = this.preset;
     o.fullscreen = this.fullscreen;
     o.disabled = this.disabled;
-    o.fidelity = this.fidelity;
 
     if (this.editing) o.setAttribute('contenteditable', 'true');
     else o.removeAttribute('contenteditable');
@@ -324,8 +294,7 @@ export class PlaygroundApp extends LitElement {
     }
     for (const s of SLIDERS) {
       if (this.overrides.has(s.var)) {
-        const v = this.sliderValues[s.key];
-        o.style.setProperty(s.var, s.unit ? `${v}${s.unit}` : String(v));
+        o.style.setProperty(s.var, String(this.sliderValues[s.key]));
       } else o.style.removeProperty(s.var);
     }
 
@@ -403,7 +372,7 @@ export class PlaygroundApp extends LitElement {
 
   #resetOverrides(): void {
     this.overrides = new Set();
-    this.layersOff = { scanlines: false, grille: false };
+    this.layersOff = { scanlines: false };
     this.glowColorEnabled = false;
     this.noiseOverridden = false;
     requestAnimationFrame(() => this.#readSliderDefaults());
@@ -425,7 +394,6 @@ export class PlaygroundApp extends LitElement {
 
   #buildExport(): string {
     const attrs: string[] = [`preset="${this.preset}"`];
-    if (this.fidelity !== 'standard') attrs.push(`fidelity="${this.fidelity}"`);
     if (this.fullscreen) attrs.push('fullscreen');
     if (this.disabled) attrs.push('disabled');
 
@@ -433,8 +401,7 @@ export class PlaygroundApp extends LitElement {
     const partStyleParts: string[] = [];
     for (const s of SLIDERS) {
       if (this.overrides.has(s.var)) {
-        const v = this.sliderValues[s.key];
-        hostStyleParts.push(`${s.var}: ${s.unit ? `${v}${s.unit}` : v}`);
+        hostStyleParts.push(`${s.var}: ${this.sliderValues[s.key]}`);
       }
     }
     if (this.glowColorEnabled) hostStyleParts.push(`--crt-glow-color: ${this.glowColor}`);
@@ -506,7 +473,7 @@ export class PlaygroundApp extends LitElement {
             >
               ↻
             </button>
-            <span class="value">${display}${s.unit ?? ''}</span>
+            <span class="value">${display}</span>
           </span>
         </span>
         <input
@@ -588,31 +555,6 @@ export class PlaygroundApp extends LitElement {
               light
             </button>
           </div>
-        </section>
-
-        <section class="group">
-          <h2>Fidelity</h2>
-          <div class="stage-sizes">
-            ${FIDELITIES.map(
-              (f) => html`
-                <button
-                  type="button"
-                  class=${f === this.fidelity ? 'chip on' : 'chip'}
-                  @click=${() => {
-                    this.#userInteracted();
-                    this.fidelity = f;
-                  }}
-                  title=${f}
-                >
-                  ${f}
-                </button>
-              `,
-            )}
-          </div>
-          <p class="hint">
-            <code>high</code> adds brightness-aware bloom + chromatic aberration on rasters;
-            <code>max</code> adds NTSC artifacts (consumer) + curvature.
-          </p>
         </section>
 
         <section class="group">

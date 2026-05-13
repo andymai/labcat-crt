@@ -1,11 +1,13 @@
 import { css } from 'lit';
 
 /*
- * Animations are preset-locked (bound to preset selectors, not CSS vars) so
- * consumers can't accidentally turn flicker on for PVM. The drift distance
- * is calc(var(--crt-pitch) * 20) so the line-rate the user perceives is
+ * Drift distance is calc(var(--crt-pitch) * 20) so perceived line-rate is
  * identical across viewport sizes — a small overlay drifts the same number
  * of pitches per second as a 4K fullscreen one.
+ *
+ * Breathing: 8s ambient brightness/saturation pulse on the overlay's
+ * backdrop-filter at ~2-3% amplitude. Below conscious perception but adds
+ * an 'on, alive' feel; reduced-motion suppresses it.
  */
 export const animationStyles = css`
   @keyframes crt-scanline-drift {
@@ -13,32 +15,40 @@ export const animationStyles = css`
     to   { background-position-y: 0px, 0, calc(var(--crt-pitch) * 20); }
   }
 
-  @keyframes crt-phosphor-shimmer {
-    0%   { opacity: 1; }
-    45%  { opacity: 0.97; }
-    55%  { opacity: 1; }
-    100% { opacity: 0.985; }
+  @keyframes crt-breathing {
+    0%, 100% {
+      filter: brightness(calc(1 - var(--crt-breathing-amplitude) * 0.5))
+              saturate(calc(1 - var(--crt-breathing-amplitude) * 0.4));
+    }
+    50% {
+      filter: brightness(calc(1 + var(--crt-breathing-amplitude) * 0.5))
+              saturate(calc(1 + var(--crt-breathing-amplitude) * 0.4));
+    }
   }
 
-  :host([preset='consumer']) .overlay,
-  :host([preset='amber']) .overlay,
-  :host([preset='green']) .overlay,
-  :host([preset='p4-white']) .overlay {
-    animation: crt-scanline-drift 30s linear infinite;
+  :host([preset='warm']) .overlay,
+  :host([preset='cool']) .overlay {
+    animation: crt-scanline-drift 36s linear infinite;
   }
 
-  :host([preset='consumer']) .overlay {
-    animation:
-      crt-scanline-drift 30s linear infinite,
-      crt-phosphor-shimmer 120ms steps(2, end) infinite;
+  :host(:not([disabled])) .overlay {
+    animation-name: var(--crt-overlay-animations, none);
   }
 
-  :host([disabled]) .overlay {
+  /* Breathing applies to the overlay's backdrop-filter independently of
+     scanline-drift so both can run together. */
+  :host(:not([disabled])) {
+    animation: crt-breathing 8s ease-in-out infinite;
+  }
+
+  :host([disabled]) .overlay,
+  :host([disabled]) {
     animation: none;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    :host .overlay {
+    :host .overlay,
+    :host {
       animation: none;
     }
   }

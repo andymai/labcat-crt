@@ -1,17 +1,14 @@
 import { css } from 'lit';
 
 /*
- * Size-aware realism: grille pitch derives from the host's container width
- * (cqi); scanline pitch falls back to the small viewport block-size (svb).
- * `container-type: inline-size` (rather than `size`) deliberately avoids
- * block-direction size containment — under `size`, the host's intrinsic
- * height ignores descendants, which clamps the box to any explicit
- * min-height and lets tall content visually overflow below the painted
- * overlay layer.
+ * Editorial restraint: every default is tuned so the effect reads as
+ * atmosphere rather than a filter. Public strength vars let consumers
+ * crank any individual effect.
  *
- * Halation vars (--crt-glow-shadow, --crt-aberration-shadow) are in em so
- * bloom scales with text size, matching how real phosphor bloom intensifies
- * with stroke width. glow.css binds them to .crt-glow.
+ * Size-aware: grille pitch derives from the host's container inline-size
+ * (cqi); scanline pitch falls back to the small viewport block-size (svb).
+ * `container-type: inline-size` (not `size`) avoids block-direction size
+ * containment so the host grows with content.
  */
 export const baseStyles = css`
   :host {
@@ -23,11 +20,17 @@ export const baseStyles = css`
     --crt-lines: 480;
     --crt-triads: 480;
 
+    /* Editorial defaults — overridable on the host. */
+    --crt-scanline-strength: 0.22;
+    --crt-vignette-strength: 0.16;
+    --crt-glow-strength: 1;
+    --crt-breathing-amplitude: 0.025;
+
     --crt-glow-color: currentColor;
     --crt-glow-shadow:
       0 0 0.03em var(--crt-glow-color),
-      0 0 0.25em color-mix(in srgb, var(--crt-glow-color) 70%, transparent),
-      0 0 0.875em color-mix(in srgb, var(--crt-glow-color) 30%, transparent);
+      0 0 0.22em color-mix(in srgb, var(--crt-glow-color) calc(60% * var(--crt-glow-strength)), transparent),
+      0 0 0.7em color-mix(in srgb, var(--crt-glow-color) calc(25% * var(--crt-glow-strength)), transparent);
 
     --crt-aberration-x: 0;
     --crt-aberration-shadow: 0 0 0 transparent;
@@ -47,12 +50,8 @@ export const baseStyles = css`
     pointer-events: none;
     z-index: 1;
 
-    /* Declared on .overlay (not :host) because a container cannot query
-       itself; cqb/cqi must resolve in a descendant.
-       Pitch floor is 3px (not 1px or less) because Safari's gradient
-       rasterizer collapses sub-pixel stops into solid bands — our
-       gradients carry 7 stops per pitch, and the spacing has to stay
-       above one device pixel for Safari to render scanlines as scanlines. */
+    /* Pitch floor is 3px because Safari's gradient rasterizer collapses
+       sub-pixel stops into solid bands. */
     --crt-pitch: clamp(3px, 100cqb / var(--crt-lines), 6px);
     --crt-grille-pitch: clamp(3px, 100cqi / var(--crt-triads), 6px);
     --crt-noise-size: clamp(120px, 18cqmin, 360px);
@@ -66,8 +65,6 @@ export const baseStyles = css`
       auto,
       auto;
     background-repeat: repeat, repeat, repeat;
-
-    mix-blend-mode: var(--crt-blend-mode, normal);
 
     -webkit-backdrop-filter:
       contrast(var(--crt-gamma-contrast, 1))
@@ -84,10 +81,7 @@ export const baseStyles = css`
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background:
-      var(--crt-corner-warm, transparent),
-      var(--crt-corner-cool, transparent),
-      var(--crt-vignette, transparent);
+    background: var(--crt-vignette, transparent);
   }
 
   :host([fullscreen]) .overlay {
@@ -102,57 +96,5 @@ export const baseStyles = css`
   :host([disabled]) {
     --crt-glow-shadow: none;
     --crt-aberration-shadow: 0 0 0 transparent;
-  }
-
-  /* z-index keeps .content below .overlay so scanlines paint over bloom,
-     not the other way around. */
-  .content {
-    position: relative;
-    z-index: 0;
-  }
-
-  .crt-filters {
-    position: absolute;
-    width: 0;
-    height: 0;
-    overflow: hidden;
-    pointer-events: none;
-  }
-
-  /* Filter chain order is physical: aberration first (convergence error at
-     the electron gun) then bloom (phosphor halation diffuses the already-
-     misregistered beams). Reversing it blooms the source then splits the
-     bloom's halos, which reads as a digital glitch, not a CRT.
-     :not([disabled]) gates here (not via a separate override rule) because
-     the consumer+max selector outweighs any simple [disabled] reset on
-     specificity. */
-  :host([fidelity='high']:not([disabled])) .content,
-  :host([fidelity='max']:not([disabled])) .content {
-    filter: url(#crt-bloom);
-    isolation: isolate;
-  }
-
-  :host([fidelity='high'][preset='consumer']:not([disabled])) .content,
-  :host([fidelity='max'][preset='consumer']:not([disabled])) .content {
-    filter: url(#crt-aberration) url(#crt-bloom);
-  }
-
-  :host([fidelity='max']:not([disabled])) .content {
-    transform: perspective(800px) rotateX(0.4deg);
-    transform-origin: center top;
-  }
-
-  :host([fidelity='max'][preset='consumer']:not([disabled])) .content {
-    filter: url(#crt-aberration) url(#crt-bloom) url(#crt-ntsc);
-  }
-
-  /* Reduced-motion is intentionally NOT folded in — the filters and the
-     static perspective tilt are not motion. */
-  @media (prefers-reduced-transparency: reduce) {
-    :host([fidelity='high']) .content,
-    :host([fidelity='max']) .content {
-      filter: none;
-      transform: none;
-    }
   }
 `;
