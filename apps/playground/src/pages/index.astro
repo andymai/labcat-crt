@@ -51,7 +51,7 @@ import '@labcat/crt/glow.css';
       h1.crt-glow {
         font-family: 'Berkeley Mono', ui-monospace, SFMono-Regular, monospace;
         font-size: 2.25rem;
-        margin: 0 0 1.75rem;
+        margin: 0 0 0.35rem;
         color: var(--crt-glow-color, #f0f0f0);
         letter-spacing: 0.005em;
         line-height: 1.15;
@@ -89,13 +89,32 @@ import '@labcat/crt/glow.css';
         font-style: italic;
         max-width: 60ch;
       }
-      .citation {
+      /* Epigraph: sits above the title as the opening literary frame.
+         Attribution row is em-dash, plain (not italic), right-aligned. */
+      blockquote.epigraph {
+        margin-bottom: 2rem;
+      }
+      blockquote.epigraph .attribution {
+        font-style: normal;
+        font-size: 0.78rem;
+        opacity: 0.6;
+        text-align: right;
+        max-width: 60ch;
+        margin: 0.5rem 0 0;
+        letter-spacing: 0.01em;
+      }
+      blockquote.epigraph .attribution em {
+        font-style: italic;
+      }
+
+      /* Byline: per-article body source, sits tight under the h1. */
+      .byline {
         font-variant-numeric: tabular-nums;
         opacity: 0.55;
         letter-spacing: 0.06em;
         text-transform: uppercase;
         font-size: 0.72rem;
-        margin: 0 0 2rem;
+        margin: 0 0 1.75rem;
       }
 
       .drop-zone {
@@ -153,16 +172,19 @@ import '@labcat/crt/glow.css';
              eBook #205, public domain). Same temperament in two forests:
              deliberate attention as moral discipline. -->
         <article data-preset="calm">
-          <p class="citation">Clifford Stoll · The Cuckoo's Egg · 1989  //  Henry David Thoreau · Walden · 1854</p>
-          <blockquote>
+          <blockquote class="epigraph">
             <p>
               Saved by my logbook. Just like observing at a telescope. If you don't
               document it, you might as well not have observed it. Sure, you need
               powerful telescopes and computers. But without a logbook, your
               observations won't amount to much.
             </p>
+            <p class="attribution">
+              — Clifford Stoll, <em>The Cuckoo's Egg</em>, 1989
+            </p>
           </blockquote>
           <h1 class="crt-glow">Where I Lived, and What I Lived For</h1>
+          <p class="byline">Henry David Thoreau · Walden · 1854</p>
           <p>
             I went to the woods because I wished to live deliberately, to front only the essential
             facts of life, and see if I could not learn what it had to teach, and not, when I came
@@ -184,11 +206,14 @@ import '@labcat/crt/glow.css';
              domain. Same yearning — being cut from your natural element —
              across 700 years and one medium. -->
         <article data-preset="warm">
-          <p class="citation">William Gibson · Neuromancer · 1984  //  Jalal ad-Din Rumi · Masnavi I · trans. R. A. Nicholson · 1925</p>
-          <blockquote>
+          <blockquote class="epigraph">
             <p>The body was meat. Case fell into the prison of his own flesh.</p>
+            <p class="attribution">
+              — William Gibson, <em>Neuromancer</em>, 1984
+            </p>
           </blockquote>
           <h1 class="crt-glow">The Song of the Reed</h1>
+          <p class="byline">Jalal ad-Din Rumi · Masnavi I · trans. R. A. Nicholson · 1925</p>
           <blockquote>
             <p>
               Listen to the reed how it tells a tale, complaining of separations—
@@ -214,15 +239,18 @@ import '@labcat/crt/glow.css';
              describes Hiro reading a rendered world through goggles — read
              here through a CRT effect, in keeping with the demo. -->
         <article data-preset="cool">
-          <p class="citation">Neal Stephenson · Snow Crash · 1992  //  The Go Authors · BSD-3-Clause</p>
-          <blockquote>
+          <blockquote class="epigraph">
             <p>
               So Hiro's not actually here at all. He's in a computer-generated universe
               that his computer is drawing onto his goggles and pumping into his
               earphones. In the lingo, this imaginary place is known as the Metaverse.
             </p>
+            <p class="attribution">
+              — Neal Stephenson, <em>Snow Crash</em>, 1992
+            </p>
           </blockquote>
           <h1 class="crt-glow">bytes.Equal</h1>
+          <p class="byline">The Go Authors · src/bytes/bytes.go · BSD-3-Clause</p>
           <p>
             Reports whether a and b have the same length and contain the same bytes. A nil
             argument is equivalent to an empty slice.
