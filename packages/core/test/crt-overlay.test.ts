@@ -54,4 +54,35 @@ describe('<crt-overlay>', () => {
     const overlay = el.shadowRoot?.querySelector('.overlay');
     expect(getComputedStyle(overlay as Element).display).toBe('none');
   });
+
+  it('renders a .content wrapper around the slot for filter targeting', async () => {
+    const el = await fixture<CrtOverlay>(html`<crt-overlay></crt-overlay>`);
+    const content = el.shadowRoot?.querySelector('.content');
+    expect(content).toBeTruthy();
+    expect(content?.querySelector('slot')).toBeTruthy();
+  });
+
+  it('ships SVG filter defs in the shadow DOM', async () => {
+    const el = await fixture<CrtOverlay>(html`<crt-overlay></crt-overlay>`);
+    const filters = el.shadowRoot?.querySelector('svg.crt-filters');
+    expect(filters).toBeTruthy();
+    expect(filters?.querySelector('#crt-bloom')).toBeTruthy();
+    expect(filters?.querySelector('#crt-aberration')).toBeTruthy();
+    expect(filters?.querySelector('#crt-ntsc')).toBeTruthy();
+  });
+
+  it('fidelity attribute reflects and accepts standard/high/max', async () => {
+    const el = await fixture<CrtOverlay>(html`<crt-overlay fidelity="high"></crt-overlay>`);
+    expect(el.fidelity).toBe('high');
+    expect(el.getAttribute('fidelity')).toBe('high');
+    el.fidelity = 'max';
+    await el.updateComplete;
+    expect(el.getAttribute('fidelity')).toBe('max');
+  });
+
+  it('attaches SVG bloom filter to .content at fidelity=high', async () => {
+    const el = await fixture<CrtOverlay>(html`<crt-overlay fidelity="high"></crt-overlay>`);
+    const content = el.shadowRoot?.querySelector('.content') as Element;
+    expect(getComputedStyle(content).filter).toContain('crt-bloom');
+  });
 });

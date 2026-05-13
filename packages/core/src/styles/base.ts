@@ -103,4 +103,62 @@ export const baseStyles = css`
     --crt-glow-shadow: none;
     --crt-aberration-shadow: 0 0 0 transparent;
   }
+
+  /* Content wrapper: target of the SVG filter chain at fidelity ≥ high.
+     z-index keeps it below .overlay (which paints scanlines on top, crisp
+     and unfiltered — bloom on gradient layers would muddy them). */
+  .content {
+    position: relative;
+    z-index: 0;
+  }
+
+  /* SVG filter defs container — must be in the DOM for filter URLs to
+     resolve, but occupies no layout space. */
+  .crt-filters {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  /* Brightness-aware bloom on slotted content at fidelity ≥ high.
+     isolation: isolate scopes the blend-mode inside the screen composite
+     of the SVG filter so it can't bleed into ancestor stacking contexts. */
+  :host([fidelity='high']) .content,
+  :host([fidelity='max']) .content {
+    filter: url(#crt-bloom);
+    isolation: isolate;
+  }
+
+  /* Consumer preset gets raster-level chromatic aberration on top of
+     bloom. PVM was an RGB monitor with perfect convergence; monochrome
+     terminals had a single phosphor so the concept doesn't apply. */
+  :host([fidelity='high'][preset='consumer']) .content,
+  :host([fidelity='max'][preset='consumer']) .content {
+    filter: url(#crt-bloom) url(#crt-aberration);
+  }
+
+  /* Fidelity 'max': subtle screen curvature for every preset.
+     Slight pitch (rotateX) reads as a CRT tube without warping individual
+     pixels — feDisplacementMap-based barrel was overkill for the effect. */
+  :host([fidelity='max']) .content {
+    transform: perspective(800px) rotateX(0.4deg);
+    transform-origin: center top;
+  }
+
+  /* Consumer preset at 'max' also picks up NTSC composite artifacts. */
+  :host([fidelity='max'][preset='consumer']) .content {
+    filter: url(#crt-bloom) url(#crt-aberration) url(#crt-ntsc);
+  }
+
+  /* Reduced-motion / reduced-transparency: silently fall back to standard.
+     Same CSS rule for both since both signal "less visual noise please". */
+  @media (prefers-reduced-motion: reduce), (prefers-reduced-transparency: reduce) {
+    :host([fidelity='high']) .content,
+    :host([fidelity='max']) .content {
+      filter: none;
+      transform: none;
+    }
+  }
 `;

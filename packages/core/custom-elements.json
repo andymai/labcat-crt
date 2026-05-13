@@ -8,7 +8,7 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "`<crt-overlay>` paints a CRT phosphor effect on its slotted content\n(per-container) or on the viewport (`fullscreen`).\n\nPresets: `pvm` (Sony broadcast monitor, default), `consumer` (NTSC TV\nwith shimmer), `amber` (VT220 monochrome), `green` (IBM 5151 monochrome),\n`p4-white` (early-80s mono PC monitor).\n\nTo enable halation on bright text, import `@labcat/crt/glow.css` once in\nyour app and tag elements with `class=\"crt-glow\"`. The component publishes\nthe halation CSS vars; the imported stylesheet binds them to that class.\n\nRealism scales with the container: every pitch derives from container query\nunits (cqb/cqi/cqmin) so a 200×150 widget and a 4K fullscreen both render\na coherent CRT rather than a fixed-pixel screen filter. The per-preset\narchetype is set by `--crt-lines` (vertical scanline count) and\n`--crt-triads` (horizontal RGB triad count); consumers override either to\nretune any preset without touching the gradients.",
+          "description": "`<crt-overlay>` paints a CRT phosphor effect on its slotted content\n(per-container) or on the viewport (`fullscreen`).\n\nPresets: `pvm` (Sony broadcast monitor, default), `consumer` (NTSC TV\nwith shimmer), `amber` (VT220 monochrome), `green` (IBM 5151 monochrome),\n`p4-white` (early-80s mono PC monitor).\n\nFidelity tiers:\n  `standard` (default) — pure CSS gradients, scanlines, em-based halation\n                         via `.crt-glow` class binding.\n  `high`               — adds SVG-filter brightness-aware bloom on the\n                         slotted content (all bright pixels glow, not\n                         just `.crt-glow`-tagged) and channel-split\n                         chromatic aberration on the consumer preset.\n  `max`                — adds NTSC composite artifacts (consumer only —\n                         PVMs were RGB-direct) and subtle screen\n                         curvature via `transform: perspective`.\n\nTo enable halation on bright text, import `@labcat/crt/glow.css` once in\nyour app and tag elements with `class=\"crt-glow\"`. The component publishes\nthe halation CSS vars; the imported stylesheet binds them to that class.\n\nRealism scales with the container: every pitch derives from container query\nunits (cqi/cqb fallback) so a 200×150 widget and a 4K fullscreen both\nrender a coherent CRT rather than a fixed-pixel screen filter.\n\n`prefers-reduced-motion` or `prefers-reduced-transparency` silently\ndowngrade `fidelity` to `standard` — no broken state for users opting out.",
           "name": "CrtOverlay",
           "cssProperties": [
             {
@@ -17,41 +17,28 @@
               "default": "9999"
             },
             {
-              "description": "Target vertical scanline count. Per-preset default (480 NTSC, 400 VT220, 350 IBM 5151, 364 Apple Lisa).",
+              "description": "Target vertical scanline count.",
               "name": "--crt-lines",
               "default": "480"
             },
             {
-              "description": "Target horizontal RGB triad count. Per-preset default (480 PVM, 320 consumer NTSC).",
+              "description": "Target horizontal RGB triad count.",
               "name": "--crt-triads",
               "default": "480"
             },
             {
-              "description": "Chromatic aberration horizontal offset (em or px). 0 = no aberration. Override to retune any preset's convergence strength without rebuilding the shadow.",
+              "description": "Chromatic aberration horizontal offset for the text-shadow halation (em or px). 0 = no aberration.",
               "name": "--crt-aberration-x"
-            },
-            {
-              "description": "Derived vertical scanline pitch (read-only; override `--crt-lines` instead).",
-              "name": "--crt-pitch"
-            },
-            {
-              "description": "Derived horizontal RGB triad pitch (read-only; override `--crt-triads` instead).",
-              "name": "--crt-grille-pitch"
-            },
-            {
-              "description": "Derived phosphor-noise tile size (read-only).",
-              "name": "--crt-noise-size"
-            },
-            {
-              "description": "mix-blend-mode for the painted overlay layer. Default `normal` plays cleanly with backdrop-filter. Try `overlay` or `soft-light` for a stronger contrast-pumped look.",
-              "name": "--crt-blend-mode",
-              "default": "normal"
             }
           ],
           "cssParts": [
             {
               "description": "The painted overlay layer (scanlines, grille, vignette).",
               "name": "overlay"
+            },
+            {
+              "description": "The slotted-content wrapper (target of SVG filter chain).",
+              "name": "content"
             }
           ],
           "slots": [
@@ -79,7 +66,7 @@
                 "text": "boolean"
               },
               "default": "false",
-              "description": "When set, the overlay covers the viewport (`position: fixed; inset: 0`)\nand the slot is hidden. Halation vars publish to `document.documentElement`\nso `.crt-glow` elements anywhere on the page inherit them.",
+              "description": "When set, the overlay covers the viewport and the slot is hidden.\nHalation vars publish to `document.documentElement` so `.crt-glow`\nelements anywhere on the page inherit them.",
               "attribute": "fullscreen",
               "reflects": true
             },
@@ -90,9 +77,28 @@
                 "text": "boolean"
               },
               "default": "false",
-              "description": "Turn the effect off without unmounting. Animations pause cleanly so\nre-enabling resumes from a stable state. Halation vars are unpublished.",
+              "description": "Turn the effect off without unmounting. Animations pause cleanly so\nre-enabling resumes from a stable state. Halation vars unpublish.",
               "attribute": "disabled",
               "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "fidelity",
+              "type": {
+                "text": "CrtFidelity"
+              },
+              "default": "'standard'",
+              "description": "Visual fidelity tier. `standard` is pure CSS (current behavior).\n`high` adds SVG-filter bloom + raster chromatic aberration.\n`max` adds NTSC artifacts (consumer preset) and curvature.\nAuto-downgrades to `standard` under `prefers-reduced-motion` or\n`prefers-reduced-transparency`.",
+              "attribute": "fidelity",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "effectiveFidelity",
+              "type": {
+                "text": "CrtFidelity"
+              },
+              "readonly": true
             },
             {
               "kind": "method",
@@ -132,7 +138,7 @@
                 "text": "boolean"
               },
               "default": "false",
-              "description": "When set, the overlay covers the viewport (`position: fixed; inset: 0`)\nand the slot is hidden. Halation vars publish to `document.documentElement`\nso `.crt-glow` elements anywhere on the page inherit them.",
+              "description": "When set, the overlay covers the viewport and the slot is hidden.\nHalation vars publish to `document.documentElement` so `.crt-glow`\nelements anywhere on the page inherit them.",
               "fieldName": "fullscreen",
               "attribute": "fullscreen"
             },
@@ -142,9 +148,19 @@
                 "text": "boolean"
               },
               "default": "false",
-              "description": "Turn the effect off without unmounting. Animations pause cleanly so\nre-enabling resumes from a stable state. Halation vars are unpublished.",
+              "description": "Turn the effect off without unmounting. Animations pause cleanly so\nre-enabling resumes from a stable state. Halation vars unpublish.",
               "fieldName": "disabled",
               "attribute": "disabled"
+            },
+            {
+              "name": "fidelity",
+              "type": {
+                "text": "CrtFidelity"
+              },
+              "default": "'standard'",
+              "description": "Visual fidelity tier. `standard` is pure CSS (current behavior).\n`high` adds SVG-filter bloom + raster chromatic aberration.\n`max` adds NTSC artifacts (consumer preset) and curvature.\nAuto-downgrades to `standard` under `prefers-reduced-motion` or\n`prefers-reduced-transparency`.",
+              "fieldName": "fidelity",
+              "attribute": "fidelity"
             }
           ],
           "superclass": {
@@ -176,6 +192,27 @@
     },
     {
       "kind": "javascript-module",
+      "path": "src/filters.ts",
+      "declarations": [
+        {
+          "kind": "variable",
+          "name": "crtFilters",
+          "default": "html` <svg class=\"crt-filters\" aria-hidden=\"true\" focusable=\"false\" xmlns=\"http://www.w3.org/2000/svg\" > <defs> <filter id=\"crt-bloom\" x=\"-15%\" y=\"-15%\" width=\"130%\" height=\"130%\" color-interpolation-filters=\"sRGB\" > <feComponentTransfer in=\"SourceGraphic\" result=\"thresholded\"> <feFuncR type=\"linear\" slope=\"2.4\" intercept=\"-0.95\" /> <feFuncG type=\"linear\" slope=\"2.4\" intercept=\"-0.95\" /> <feFuncB type=\"linear\" slope=\"2.4\" intercept=\"-0.95\" /> </feComponentTransfer> <feGaussianBlur in=\"thresholded\" stdDeviation=\"3\" result=\"bloom\" /> <feBlend in=\"bloom\" in2=\"SourceGraphic\" mode=\"screen\" /> </filter> <filter id=\"crt-aberration\" x=\"-5%\" y=\"-5%\" width=\"110%\" height=\"110%\" color-interpolation-filters=\"sRGB\" > <feOffset in=\"SourceGraphic\" dx=\"0.7\" dy=\"0\" result=\"rOff\" /> <feColorMatrix in=\"rOff\" type=\"matrix\" values=\"1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0\" result=\"r\" /> <feColorMatrix in=\"SourceGraphic\" type=\"matrix\" values=\"0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0\" result=\"g\" /> <feOffset in=\"SourceGraphic\" dx=\"-0.7\" dy=\"0\" result=\"bOff\" /> <feColorMatrix in=\"bOff\" type=\"matrix\" values=\"0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 1 0\" result=\"b\" /> <feBlend in=\"r\" in2=\"g\" mode=\"screen\" result=\"rg\" /> <feBlend in=\"rg\" in2=\"b\" mode=\"screen\" /> </filter> <filter id=\"crt-ntsc\" x=\"0%\" y=\"0%\" width=\"100%\" height=\"100%\" color-interpolation-filters=\"sRGB\" > <feTurbulence type=\"fractalNoise\" baseFrequency=\"0.6 0.04\" numOctaves=\"2\" seed=\"3\" result=\"noise\" /> <feDisplacementMap in=\"SourceGraphic\" in2=\"noise\" scale=\"0.8\" xChannelSelector=\"R\" yChannelSelector=\"G\" /> </filter> </defs> </svg> `"
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "crtFilters",
+          "declaration": {
+            "name": "crtFilters",
+            "module": "src/filters.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
       "path": "src/index.ts",
       "declarations": [],
       "exports": [
@@ -184,6 +221,14 @@
           "name": "CrtOverlay",
           "declaration": {
             "name": "CrtOverlay",
+            "module": "./crt-overlay.js"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "CrtFidelity",
+          "declaration": {
+            "name": "CrtFidelity",
             "module": "./crt-overlay.js"
           }
         },
@@ -225,7 +270,7 @@
         {
           "kind": "variable",
           "name": "baseStyles",
-          "default": "css` :host { display: block; position: relative; isolation: isolate; container-type: inline-size; --crt-lines: 480; --crt-triads: 480; --crt-glow-color: currentColor; --crt-glow-shadow: 0 0 0.03em var(--crt-glow-color), 0 0 0.25em color-mix(in srgb, var(--crt-glow-color) 70%, transparent), 0 0 0.875em color-mix(in srgb, var(--crt-glow-color) 30%, transparent); --crt-aberration-x: 0; --crt-aberration-shadow: 0 0 0 transparent; } :host([fullscreen]) { display: contents; } :host([fullscreen]) ::slotted(*) { display: none; } .overlay { position: absolute; inset: 0; pointer-events: none; z-index: 1; /* Declared on .overlay (not :host) because a container cannot query itself; cqb/cqi must resolve in a descendant. Pitch floor is 3px (not 1px or less) because Safari's gradient rasterizer collapses sub-pixel stops into solid bands — our gradients carry 7 stops per pitch, and the spacing has to stay above one device pixel for Safari to render scanlines as scanlines. */ --crt-pitch: clamp(3px, 100cqb / var(--crt-lines), 6px); --crt-grille-pitch: clamp(3px, 100cqi / var(--crt-triads), 6px); --crt-noise-size: clamp(120px, 18cqmin, 360px); background-image: var(--crt-noise, none), var(--crt-grille, none), var(--crt-scanlines, none); background-size: var(--crt-noise-size) var(--crt-noise-size), auto, auto; background-repeat: repeat, repeat, repeat; mix-blend-mode: var(--crt-blend-mode, normal); -webkit-backdrop-filter: contrast(var(--crt-gamma-contrast, 1)) brightness(var(--crt-gamma-brightness, 1)) saturate(var(--crt-gamma-saturate, 1)); backdrop-filter: contrast(var(--crt-gamma-contrast, 1)) brightness(var(--crt-gamma-brightness, 1)) saturate(var(--crt-gamma-saturate, 1)); } .overlay::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: var(--crt-corner-warm, transparent), var(--crt-corner-cool, transparent), var(--crt-vignette, transparent); } :host([fullscreen]) .overlay { position: fixed; inset: 0; z-index: var(--crt-z, 9999); } :host([disabled]) .overlay { display: none; } :host([disabled]) { --crt-glow-shadow: none; --crt-aberration-shadow: 0 0 0 transparent; } `"
+          "default": "css` :host { display: block; position: relative; isolation: isolate; container-type: inline-size; --crt-lines: 480; --crt-triads: 480; --crt-glow-color: currentColor; --crt-glow-shadow: 0 0 0.03em var(--crt-glow-color), 0 0 0.25em color-mix(in srgb, var(--crt-glow-color) 70%, transparent), 0 0 0.875em color-mix(in srgb, var(--crt-glow-color) 30%, transparent); --crt-aberration-x: 0; --crt-aberration-shadow: 0 0 0 transparent; } :host([fullscreen]) { display: contents; } :host([fullscreen]) ::slotted(*) { display: none; } .overlay { position: absolute; inset: 0; pointer-events: none; z-index: 1; /* Declared on .overlay (not :host) because a container cannot query itself; cqb/cqi must resolve in a descendant. Pitch floor is 3px (not 1px or less) because Safari's gradient rasterizer collapses sub-pixel stops into solid bands — our gradients carry 7 stops per pitch, and the spacing has to stay above one device pixel for Safari to render scanlines as scanlines. */ --crt-pitch: clamp(3px, 100cqb / var(--crt-lines), 6px); --crt-grille-pitch: clamp(3px, 100cqi / var(--crt-triads), 6px); --crt-noise-size: clamp(120px, 18cqmin, 360px); background-image: var(--crt-noise, none), var(--crt-grille, none), var(--crt-scanlines, none); background-size: var(--crt-noise-size) var(--crt-noise-size), auto, auto; background-repeat: repeat, repeat, repeat; mix-blend-mode: var(--crt-blend-mode, normal); -webkit-backdrop-filter: contrast(var(--crt-gamma-contrast, 1)) brightness(var(--crt-gamma-brightness, 1)) saturate(var(--crt-gamma-saturate, 1)); backdrop-filter: contrast(var(--crt-gamma-contrast, 1)) brightness(var(--crt-gamma-brightness, 1)) saturate(var(--crt-gamma-saturate, 1)); } .overlay::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: var(--crt-corner-warm, transparent), var(--crt-corner-cool, transparent), var(--crt-vignette, transparent); } :host([fullscreen]) .overlay { position: fixed; inset: 0; z-index: var(--crt-z, 9999); } :host([disabled]) .overlay { display: none; } :host([disabled]) { --crt-glow-shadow: none; --crt-aberration-shadow: 0 0 0 transparent; } /* Content wrapper: target of the SVG filter chain at fidelity ≥ high. z-index keeps it below .overlay (which paints scanlines on top, crisp and unfiltered — bloom on gradient layers would muddy them). */ .content { position: relative; z-index: 0; } /* SVG filter defs container — must be in the DOM for filter URLs to resolve, but occupies no layout space. */ .crt-filters { position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none; } /* Brightness-aware bloom on slotted content at fidelity ≥ high. isolation: isolate scopes the blend-mode inside the screen composite of the SVG filter so it can't bleed into ancestor stacking contexts. */ :host([fidelity='high']) .content, :host([fidelity='max']) .content { filter: url(#crt-bloom); isolation: isolate; } /* Consumer preset gets raster-level chromatic aberration on top of bloom. PVM was an RGB monitor with perfect convergence; monochrome terminals had a single phosphor so the concept doesn't apply. */ :host([fidelity='high'][preset='consumer']) .content, :host([fidelity='max'][preset='consumer']) .content { filter: url(#crt-bloom) url(#crt-aberration); } /* Fidelity 'max': subtle screen curvature for every preset. Slight pitch (rotateX) reads as a CRT tube without warping individual pixels — feDisplacementMap-based barrel was overkill for the effect. */ :host([fidelity='max']) .content { transform: perspective(800px) rotateX(0.4deg); transform-origin: center top; } /* Consumer preset at 'max' also picks up NTSC composite artifacts. */ :host([fidelity='max'][preset='consumer']) .content { filter: url(#crt-bloom) url(#crt-aberration) url(#crt-ntsc); } /* Reduced-motion / reduced-transparency: silently fall back to standard. Same CSS rule for both since both signal \"less visual noise please\". */ @media (prefers-reduced-motion: reduce), (prefers-reduced-transparency: reduce) { :host([fidelity='high']) .content, :host([fidelity='max']) .content { filter: none; transform: none; } } `"
         }
       ],
       "exports": [

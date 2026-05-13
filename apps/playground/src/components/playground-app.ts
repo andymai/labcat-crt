@@ -1,8 +1,9 @@
-import type { CrtOverlay, CrtPreset } from '@labcat/crt';
+import type { CrtFidelity, CrtOverlay, CrtPreset } from '@labcat/crt';
 import { LitElement, css, html } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
 
 const PRESETS: readonly CrtPreset[] = ['pvm', 'consumer', 'amber', 'green', 'p4-white'] as const;
+const FIDELITIES: readonly CrtFidelity[] = ['standard', 'high', 'max'] as const;
 
 type StageSizeKey = 'free' | 'mobile' | 'tablet' | 'desktop' | '4k' | 'ultrawide';
 const STAGE_SIZES: readonly { key: StageSizeKey; label: string }[] = [
@@ -127,6 +128,7 @@ export class PlaygroundApp extends LitElement {
   @property({ type: Boolean }) disabled = false;
   @property({ type: Boolean }) editing = false;
   @property({ type: String }) contentTheme: ContentTheme = 'dark';
+  @property({ type: String }) fidelity: CrtFidelity = 'high';
 
   @state() private stageSize: StageSizeKey = 'free';
 
@@ -289,6 +291,7 @@ export class PlaygroundApp extends LitElement {
       'noiseOverridden',
       'contentTheme',
       'stageSize',
+      'fidelity',
     ];
     if (overlayKeys.some((k) => changed.has(k))) this.#applyAll();
     if (changed.has('userImageUrl') || changed.has('dragOver') || changed.has('preset')) {
@@ -306,6 +309,7 @@ export class PlaygroundApp extends LitElement {
     o.preset = this.preset;
     o.fullscreen = this.fullscreen;
     o.disabled = this.disabled;
+    o.fidelity = this.fidelity;
 
     if (this.editing) o.setAttribute('contenteditable', 'true');
     else o.removeAttribute('contenteditable');
@@ -421,6 +425,7 @@ export class PlaygroundApp extends LitElement {
 
   #buildExport(): string {
     const attrs: string[] = [`preset="${this.preset}"`];
+    if (this.fidelity !== 'standard') attrs.push(`fidelity="${this.fidelity}"`);
     if (this.fullscreen) attrs.push('fullscreen');
     if (this.disabled) attrs.push('disabled');
 
@@ -583,6 +588,31 @@ export class PlaygroundApp extends LitElement {
               light
             </button>
           </div>
+        </section>
+
+        <section class="group">
+          <h2>Fidelity</h2>
+          <div class="stage-sizes">
+            ${FIDELITIES.map(
+              (f) => html`
+                <button
+                  type="button"
+                  class=${f === this.fidelity ? 'chip on' : 'chip'}
+                  @click=${() => {
+                    this.#userInteracted();
+                    this.fidelity = f;
+                  }}
+                  title=${f}
+                >
+                  ${f}
+                </button>
+              `,
+            )}
+          </div>
+          <p class="hint">
+            <code>high</code> adds brightness-aware bloom + chromatic aberration on rasters;
+            <code>max</code> adds NTSC artifacts (consumer) + curvature.
+          </p>
         </section>
 
         <section class="group">

@@ -48,13 +48,13 @@
     {
       "name": "@labcat/crt (ESM, gzip, Lit bundled)",
       "path": "dist/index.js",
-      "limit": "12 kB",
+      "limit": "13 kB",
       "import": "*"
     },
     {
       "name": "@labcat/crt (ESM, gzip, Lit shared)",
       "path": "dist/index.js",
-      "limit": "4 kB",
+      "limit": "5 kB",
       "import": "*",
       "ignore": ["lit", "lit/decorators.js", "lit/directives/class-map.js"]
     }

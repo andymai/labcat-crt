@@ -1,17 +1,14 @@
 import { LitElement, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 
+import { crtFilters } from './filters.js';
 import { animationStyles } from './styles/animations.js';
 import { baseStyles } from './styles/base.js';
 import { presetStyles } from './styles/presets.js';
 
 export type CrtPreset = 'pvm' | 'consumer' | 'amber' | 'green' | 'p4-white';
+export type CrtFidelity = 'standard' | 'high' | 'max';
 
-/*
- * Set, not a counter: disconnects from instances that never connected (HMR)
- * must not underflow. First-in publishes halation vars on documentElement,
- * last-out clears them.
- */
 const fullscreenInstances = new Set<CrtOverlay>();
 
 const HALATION_VARS = ['--crt-glow-shadow', '--crt-aberration-shadow'] as const;
@@ -40,6 +37,16 @@ function clearDocumentElement(): void {
   }
 }
 
+/* Users with reduced-motion or reduced-transparency preferences see CRT
+   filters as visual noise; silently render as if fidelity='standard'. */
+function prefersReducedEffects(): boolean {
+  if (typeof window === 'undefined' || !window.matchMedia) return false;
+  return (
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
+    window.matchMedia('(prefers-reduced-transparency: reduce)').matches
+  );
+}
+
 /**
  * `<crt-overlay>` paints a CRT phosphor effect on its slotted content
  * (per-container) or on the viewport (`fullscreen`).
@@ -48,36 +55,37 @@ function clearDocumentElement(): void {
  * with shimmer), `amber` (VT220 monochrome), `green` (IBM 5151 monochrome),
  * `p4-white` (early-80s mono PC monitor).
  *
+ * Fidelity tiers:
+ *   `standard` (default) — pure CSS gradients, scanlines, em-based halation
+ *                          via `.crt-glow` class binding.
+ *   `high`               — adds SVG-filter brightness-aware bloom on the
+ *                          slotted content (all bright pixels glow, not
+ *                          just `.crt-glow`-tagged) and channel-split
+ *                          chromatic aberration on the consumer preset.
+ *   `max`                — adds NTSC composite artifacts (consumer only —
+ *                          PVMs were RGB-direct) and subtle screen
+ *                          curvature via `transform: perspective`.
+ *
  * To enable halation on bright text, import `@labcat/crt/glow.css` once in
  * your app and tag elements with `class="crt-glow"`. The component publishes
  * the halation CSS vars; the imported stylesheet binds them to that class.
  *
  * Realism scales with the container: every pitch derives from container query
- * units (cqb/cqi/cqmin) so a 200×150 widget and a 4K fullscreen both render
- * a coherent CRT rather than a fixed-pixel screen filter. The per-preset
- * archetype is set by `--crt-lines` (vertical scanline count) and
- * `--crt-triads` (horizontal RGB triad count); consumers override either to
- * retune any preset without touching the gradients.
+ * units (cqi/cqb fallback) so a 200×150 widget and a 4K fullscreen both
+ * render a coherent CRT rather than a fixed-pixel screen filter.
+ *
+ * `prefers-reduced-motion` or `prefers-reduced-transparency` silently
+ * downgrade `fidelity` to `standard` — no broken state for users opting out.
  *
  * @element crt-overlay
  * @slot - Content to overlay. Ignored in `fullscreen` mode.
  * @csspart overlay - The painted overlay layer (scanlines, grille, vignette).
+ * @csspart content - The slotted-content wrapper (target of SVG filter chain).
  * @cssprop [--crt-z=9999] - z-index for fullscreen mode.
- * @cssprop [--crt-lines=480] - Target vertical scanline count. Per-preset
- *   default (480 NTSC, 400 VT220, 350 IBM 5151, 364 Apple Lisa).
+ * @cssprop [--crt-lines=480] - Target vertical scanline count.
  * @cssprop [--crt-triads=480] - Target horizontal RGB triad count.
- *   Per-preset default (480 PVM, 320 consumer NTSC).
  * @cssprop [--crt-aberration-x] - Chromatic aberration horizontal offset
- *   (em or px). 0 = no aberration. Override to retune any preset's
- *   convergence strength without rebuilding the shadow.
- * @cssprop [--crt-pitch] - Derived vertical scanline pitch (read-only;
- *   override `--crt-lines` instead).
- * @cssprop [--crt-grille-pitch] - Derived horizontal RGB triad pitch
- *   (read-only; override `--crt-triads` instead).
- * @cssprop [--crt-noise-size] - Derived phosphor-noise tile size (read-only).
- * @cssprop [--crt-blend-mode=normal] - mix-blend-mode for the painted
- *   overlay layer. Default `normal` plays cleanly with backdrop-filter.
- *   Try `overlay` or `soft-light` for a stronger contrast-pumped look.
+ *   for the text-shadow halation (em or px). 0 = no aberration.
  */
 @customElement('crt-overlay')
 export class CrtOverlay extends LitElement {
@@ -91,9 +99,9 @@ export class CrtOverlay extends LitElement {
   preset: CrtPreset = 'pvm';
 
   /**
-   * When set, the overlay covers the viewport (`position: fixed; inset: 0`)
-   * and the slot is hidden. Halation vars publish to `document.documentElement`
-   * so `.crt-glow` elements anywhere on the page inherit them.
+   * When set, the overlay covers the viewport and the slot is hidden.
+   * Halation vars publish to `document.documentElement` so `.crt-glow`
+   * elements anywhere on the page inherit them.
    * @attr fullscreen
    */
   @property({ type: Boolean, reflect: true })
@@ -101,11 +109,28 @@ export class CrtOverlay extends LitElement {
 
   /**
    * Turn the effect off without unmounting. Animations pause cleanly so
-   * re-enabling resumes from a stable state. Halation vars are unpublished.
+   * re-enabling resumes from a stable state. Halation vars unpublish.
    * @attr disabled
    */
   @property({ type: Boolean, reflect: true })
   disabled = false;
+
+  /**
+   * Visual fidelity tier. `standard` is pure CSS (current behavior).
+   * `high` adds SVG-filter bloom + raster chromatic aberration.
+   * `max` adds NTSC artifacts (consumer preset) and curvature.
+   * Auto-downgrades to `standard` under `prefers-reduced-motion` or
+   * `prefers-reduced-transparency`.
+   * @attr fidelity
+   */
+  @property({ type: String, reflect: true })
+  fidelity: CrtFidelity = 'standard';
+
+  /* The attribute the user requested vs. what we actually render. The
+     effective value strips back to 'standard' under reduced-effects prefs. */
+  get effectiveFidelity(): CrtFidelity {
+    return prefersReducedEffects() ? 'standard' : this.fidelity;
+  }
 
   override connectedCallback(): void {
     super.connectedCallback();
@@ -127,15 +152,14 @@ export class CrtOverlay extends LitElement {
 
   override render() {
     return html`
-      <slot></slot>
+      <div part="content" class="content"><slot></slot></div>
       <div part="overlay" class="overlay" aria-hidden="true"></div>
+      ${crtFilters}
     `;
   }
 
   #registerFullscreen(): void {
     fullscreenInstances.add(this);
-    // rAF (not updateComplete) lets the preset's var cascade settle without
-    // racing attributeChangedCallback microtasks.
     requestAnimationFrame(() => {
       if (!fullscreenInstances.has(this)) return;
       publishToDocumentElement(readHalationVars(this));
