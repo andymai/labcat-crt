@@ -1,3 +1,9 @@
 packages:
   - "packages/*"
   - "apps/*"
+
+# Force every yaml@<2.8.3 (e.g. via yaml-language-server) onto the patched
+# release. Stack-overflow advisory GHSA-48c2-rrv3-qjmp; the dev-tool chain
+# never sees untrusted YAML so this is purely to close the alert.
+overrides:
+  yaml: ">=2.8.3"
