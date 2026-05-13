@@ -4,18 +4,7 @@ import { customElement, property, query, state } from 'lit/decorators.js';
 
 const PRESETS: readonly CrtPreset[] = ['calm', 'warm', 'cool'] as const;
 
-type StageSizeKey = 'free' | 'mobile' | 'tablet' | 'desktop' | '4k' | 'ultrawide';
-const STAGE_SIZES: readonly { key: StageSizeKey; label: string }[] = [
-  { key: 'free', label: 'free' },
-  { key: 'mobile', label: '375' },
-  { key: 'tablet', label: '1024' },
-  { key: 'desktop', label: '1440' },
-  { key: '4k', label: '2560' },
-  { key: 'ultrawide', label: '21:9' },
-] as const;
-
 type SliderKey = 'lines' | 'scanlineStrength' | 'glowStrength' | 'vignetteStrength';
-type SliderTier = 'quick' | 'advanced';
 type SliderSpec = {
   key: SliderKey;
   var: string;
@@ -23,28 +12,32 @@ type SliderSpec = {
   min: number;
   max: number;
   step: number;
-  tier: SliderTier;
 };
 
 const SLIDERS: readonly SliderSpec[] = [
-  { key: 'lines', var: '--crt-lines', label: 'lines', min: 200, max: 700, step: 1, tier: 'quick' },
+  {
+    key: 'lines',
+    var: '--crt-lines',
+    label: 'scanline count',
+    min: 200,
+    max: 700,
+    step: 1,
+  },
   {
     key: 'scanlineStrength',
     var: '--crt-scanline-strength',
-    label: 'scanlines',
+    label: 'scanline opacity',
     min: 0,
     max: 0.6,
     step: 0.01,
-    tier: 'quick',
   },
   {
     key: 'glowStrength',
     var: '--crt-glow-strength',
-    label: 'glow',
+    label: 'amount',
     min: 0,
     max: 2,
     step: 0.05,
-    tier: 'advanced',
   },
   {
     key: 'vignetteStrength',
@@ -53,9 +46,12 @@ const SLIDERS: readonly SliderSpec[] = [
     min: 0,
     max: 0.5,
     step: 0.01,
-    tier: 'advanced',
   },
 ] as const;
+
+const SLIDER_BY_KEY: Record<SliderKey, SliderSpec> = Object.fromEntries(
+  SLIDERS.map((s) => [s.key, s]),
+) as Record<SliderKey, SliderSpec>;
 
 type LayerKey = 'scanlines';
 const LAYERS: readonly { key: LayerKey; var: string; label: string }[] = [
@@ -84,19 +80,41 @@ function readPresetNoiseAlpha(overlay: CrtOverlay): number {
   return Number.isFinite(parsed) ? parsed : NOISE_ALPHA_FALLBACK;
 }
 
-/* Light theme: each preset gets a darker glow color since the dark-mode
-   warm-white/amber/green tints would be invisible on cream paper. */
+/* Light theme rebinds substrate-coupled vars only: dark-substrate tuning
+   reads as grime on cream, while pitch/grille/noise are substrate-invariant
+   and stay shared. */
 type ContentTheme = 'dark' | 'light';
 const LIGHT_THEME = {
   bg: '#f0ece4',
   fg: '#1a1a1a',
   codeBg: 'rgba(0, 0, 0, 0.08)',
+  scanlineStrength: 0.13,
+  gammaBrightness: 1,
+  glowByPreset: {
+    calm: '#2e3f55',
+    warm: '#c46c1a',
+    cool: '#1a8a4a',
+  } satisfies Record<CrtPreset, string>,
+  glowShadow: `
+    0 0 0.04em var(--crt-glow-color),
+    0 0 0.24em color-mix(in srgb, var(--crt-glow-color) calc(40% * var(--crt-glow-strength)), transparent),
+    0 0 0.55em color-mix(in srgb, var(--crt-glow-color) calc(11% * var(--crt-glow-strength)), transparent)
+  `,
+  vignette: `radial-gradient(
+    ellipse at center,
+    transparent 55%,
+    rgba(40, 30, 20, calc(var(--crt-vignette-strength) * 0.7)) 100%
+  )`,
 } as const;
-const LIGHT_GLOW_BY_PRESET: Record<CrtPreset, string> = {
-  calm: '#3a3a3a',
-  warm: '#a8551c',
-  cool: '#1a6a3a',
-};
+
+/* Drives the dark-mode removal pass so the set/clear branches can't drift. */
+const LIGHT_HOST_VARS = [
+  'background',
+  'color',
+  '--pg-code-bg',
+  '--crt-glow-shadow',
+  '--crt-gamma-brightness',
+] as const;
 
 const CYCLE_INTERVAL_MS = 4000;
 
@@ -108,12 +126,11 @@ export class PlaygroundApp extends LitElement {
   @property({ type: Boolean }) editing = false;
   @property({ type: String }) contentTheme: ContentTheme = 'dark';
 
-  @state() private stageSize: StageSizeKey = 'free';
-
   @state() private cycling = false;
 
   @state() private advancedOpen = false;
   @state() private installOpen = false;
+  @state() private sheetOpen = false;
 
   @state() private userImageUrl: string | null = null;
   @state() private dragOver = false;
@@ -142,6 +159,7 @@ export class PlaygroundApp extends LitElement {
 
   @query('slot') private slotEl!: HTMLSlotElement;
   @query('.stage') private stageEl!: HTMLElement;
+  @query('input.file-picker') private filePickerEl!: HTMLInputElement;
 
   #overlay: CrtOverlay | null = null;
   #cycleTimer: number | null = null;
@@ -151,6 +169,14 @@ export class PlaygroundApp extends LitElement {
     this.slotEl.addEventListener('slotchange', () => this.#refreshOverlay());
     this.#startCycleIfWanted();
     this.#wireDragDrop();
+    this.filePickerEl.addEventListener('change', () => {
+      const file = this.filePickerEl.files?.[0];
+      if (!file?.type.startsWith('image/')) return;
+      this.#userInteracted();
+      this.#setUserImage(URL.createObjectURL(file));
+      this.filePickerEl.value = '';
+    });
+    window.addEventListener('keydown', this.#onKeyDown);
   }
 
   override disconnectedCallback(): void {
@@ -160,6 +186,15 @@ export class PlaygroundApp extends LitElement {
       URL.revokeObjectURL(this.userImageUrl);
       this.userImageUrl = null;
     }
+    window.removeEventListener('keydown', this.#onKeyDown);
+  }
+
+  #onKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Escape' && this.sheetOpen) this.sheetOpen = false;
+  };
+
+  #toggleSheet(): void {
+    this.sheetOpen = !this.sheetOpen;
   }
 
   #refreshOverlay(): void {
@@ -262,7 +297,6 @@ export class PlaygroundApp extends LitElement {
       'noiseAlpha',
       'noiseOverridden',
       'contentTheme',
-      'stageSize',
     ];
     if (overlayKeys.some((k) => changed.has(k))) this.#applyAll();
     if (changed.has('userImageUrl') || changed.has('dragOver') || changed.has('preset')) {
@@ -284,8 +318,6 @@ export class PlaygroundApp extends LitElement {
     if (this.editing) o.setAttribute('contenteditable', 'true');
     else o.removeAttribute('contenteditable');
 
-    if (this.stageEl) this.stageEl.dataset.size = this.stageSize;
-
     const layer = o.shadowRoot?.querySelector('.overlay') as HTMLElement | null;
     for (const lyr of LAYERS) {
       if (!layer) break;
@@ -298,7 +330,7 @@ export class PlaygroundApp extends LitElement {
       } else o.style.removeProperty(s.var);
     }
 
-    const themeGlow = this.contentTheme === 'light' ? LIGHT_GLOW_BY_PRESET[this.preset] : null;
+    const themeGlow = this.contentTheme === 'light' ? LIGHT_THEME.glowByPreset[this.preset] : null;
     const glowOverride = this.glowColorEnabled ? this.glowColor : themeGlow;
     if (glowOverride) o.style.setProperty('--crt-glow-color', glowOverride);
     else o.style.removeProperty('--crt-glow-color');
@@ -318,10 +350,15 @@ export class PlaygroundApp extends LitElement {
       o.style.setProperty('background', LIGHT_THEME.bg);
       o.style.setProperty('color', LIGHT_THEME.fg);
       o.style.setProperty('--pg-code-bg', LIGHT_THEME.codeBg);
+      o.style.setProperty('--crt-glow-shadow', LIGHT_THEME.glowShadow);
+      o.style.setProperty('--crt-gamma-brightness', String(LIGHT_THEME.gammaBrightness));
+      if (!this.overrides.has('--crt-scanline-strength')) {
+        o.style.setProperty('--crt-scanline-strength', String(LIGHT_THEME.scanlineStrength));
+      }
+      if (layer) layer.style.setProperty('--crt-vignette', LIGHT_THEME.vignette);
     } else {
-      o.style.removeProperty('background');
-      o.style.removeProperty('color');
-      o.style.removeProperty('--pg-code-bg');
+      for (const prop of LIGHT_HOST_VARS) o.style.removeProperty(prop);
+      if (layer) layer.style.removeProperty('--crt-vignette');
     }
   }
 
@@ -332,7 +369,15 @@ export class PlaygroundApp extends LitElement {
     for (const dz of dropZones) {
       for (const el of dz.querySelectorAll('img, .remove-btn')) el.remove();
       dz.toggleAttribute('data-dragover', this.dragOver);
+      // Use a property to avoid stacking listeners across re-syncs.
+      type Tappable = HTMLElement & { __tapHandler?: () => void };
+      const tappable = dz as Tappable;
+      if (tappable.__tapHandler) {
+        dz.removeEventListener('click', tappable.__tapHandler);
+        tappable.__tapHandler = undefined;
+      }
       if (this.userImageUrl) {
+        dz.style.cursor = '';
         const img = document.createElement('img');
         img.src = this.userImageUrl;
         img.alt = 'user-supplied photo through the CRT effect';
@@ -347,6 +392,14 @@ export class PlaygroundApp extends LitElement {
           this.#removeUserImage();
         });
         dz.appendChild(rm);
+      } else {
+        dz.style.cursor = 'pointer';
+        const handler = () => {
+          this.#userInteracted();
+          this.filePickerEl.click();
+        };
+        tappable.__tapHandler = handler;
+        dz.addEventListener('click', handler);
       }
     }
   }
@@ -492,11 +545,20 @@ export class PlaygroundApp extends LitElement {
   }
 
   override render() {
-    const quickSliders = SLIDERS.filter((s) => s.tier === 'quick');
-    const advancedSliders = SLIDERS.filter((s) => s.tier === 'advanced');
-
     return html`
-      <aside class="panel" aria-label="CRT playground controls">
+      <aside
+        class=${this.sheetOpen ? 'panel open' : 'panel'}
+        aria-label="CRT playground controls"
+      >
+        <button
+          type="button"
+          class="sheet-handle"
+          aria-label=${this.sheetOpen ? 'collapse controls' : 'expand controls'}
+          aria-expanded=${this.sheetOpen ? 'true' : 'false'}
+          @click=${() => this.#toggleSheet()}
+        >
+          <span class="handle-bar" aria-hidden="true"></span>
+        </button>
         <header class="brand">
           <span class="dot"></span>
           <span class="title">@labcat/crt</span>
@@ -525,7 +587,7 @@ export class PlaygroundApp extends LitElement {
             this.cycling
               ? html`<p class="cycle-hint">
                 <span class="cycle-dot"></span>
-                cycling presets · click any control to pin
+                auto-cycling · tap a control to stop
               </p>`
               : ''
           }
@@ -558,33 +620,14 @@ export class PlaygroundApp extends LitElement {
         </section>
 
         <section class="group">
-          <h2>Stage size</h2>
-          <div class="stage-sizes">
-            ${STAGE_SIZES.map(
-              (s) => html`
-                <button
-                  type="button"
-                  class=${s.key === this.stageSize ? 'chip on' : 'chip'}
-                  @click=${() => {
-                    this.#userInteracted();
-                    this.stageSize = s.key;
-                  }}
-                  title=${s.key}
-                >
-                  ${s.label}
-                </button>
-              `,
-            )}
-          </div>
-          <p class="hint">
-            ~480 scanlines hold across every size — the pitch derives from container queries.
-          </p>
+          <h2>Scanlines</h2>
+          ${this.#renderSlider(SLIDER_BY_KEY.lines)}
+          ${this.#renderSlider(SLIDER_BY_KEY.scanlineStrength)}
         </section>
 
-        <section class="group">${quickSliders.map((s) => this.#renderSlider(s))}</section>
-
         <section class="group">
-          <h2>Halation</h2>
+          <h2>Glow</h2>
+          ${this.#renderSlider(SLIDER_BY_KEY.glowStrength)}
           <label class="row">
             <input
               type="checkbox"
@@ -594,7 +637,7 @@ export class PlaygroundApp extends LitElement {
                 this.glowColorEnabled = (e.target as HTMLInputElement).checked;
               }}
             />
-            <span>custom glow color</span>
+            <span>custom color</span>
           </label>
           <label class="color-row" ?hidden=${!this.glowColorEnabled}>
             <input
@@ -606,6 +649,43 @@ export class PlaygroundApp extends LitElement {
               }}
             />
             <code>${this.glowColor}</code>
+          </label>
+        </section>
+
+        <section class="group">
+          <h2>Noise</h2>
+          <label class="slider">
+            <span class="slider-label">
+              <span>amount</span>
+              <span class="value-cluster">
+                <button
+                  type="button"
+                  class="reset-btn"
+                  title="reset to preset default"
+                  aria-label="reset noise to preset default"
+                  ?hidden=${!this.noiseOverridden}
+                  @click=${(e: Event) => {
+                    e.preventDefault();
+                    this.#userInteracted();
+                    this.#resetNoise();
+                  }}
+                >
+                  ↻
+                </button>
+                <span class="value">${this.noiseAlpha.toFixed(3)}</span>
+              </span>
+            </span>
+            <input
+              type="range"
+              min="0"
+              max=${NOISE_MAX}
+              step=${NOISE_STEP}
+              .value=${String(this.noiseAlpha)}
+              @input=${(e: Event) => {
+                const v = Number.parseFloat((e.target as HTMLInputElement).value);
+                this.#setNoiseAlpha(v);
+              }}
+            />
           </label>
         </section>
 
@@ -621,7 +701,7 @@ export class PlaygroundApp extends LitElement {
               this.#resetOverrides();
             }}
           >
-            reset overrides
+            reset
           </button>
         </section>
 
@@ -668,7 +748,7 @@ export class PlaygroundApp extends LitElement {
                   this.editing = (e.target as HTMLInputElement).checked;
                 }}
               />
-              <span>edit slot content</span>
+              <span>edit text</span>
             </label>
           </section>
 
@@ -690,44 +770,7 @@ export class PlaygroundApp extends LitElement {
 
           <section class="group">
             <h2>Tuning</h2>
-            ${advancedSliders.map((s) => this.#renderSlider(s))}
-          </section>
-
-          <section class="group">
-            <h2>Phosphor noise</h2>
-            <label class="slider">
-              <span class="slider-label">
-                <span>alpha</span>
-                <span class="value-cluster">
-                  <button
-                    type="button"
-                    class="reset-btn"
-                    title="reset to preset default"
-                    aria-label="reset noise alpha to preset default"
-                    ?hidden=${!this.noiseOverridden}
-                    @click=${(e: Event) => {
-                      e.preventDefault();
-                      this.#userInteracted();
-                      this.#resetNoise();
-                    }}
-                  >
-                    ↻
-                  </button>
-                  <span class="value">${this.noiseAlpha.toFixed(3)}</span>
-                </span>
-              </span>
-              <input
-                type="range"
-                min="0"
-                max=${NOISE_MAX}
-                step=${NOISE_STEP}
-                .value=${String(this.noiseAlpha)}
-                @input=${(e: Event) => {
-                  const v = Number.parseFloat((e.target as HTMLInputElement).value);
-                  this.#setNoiseAlpha(v);
-                }}
-              />
-            </label>
+            ${this.#renderSlider(SLIDER_BY_KEY.vignetteStrength)}
           </section>
         </details>
 
@@ -774,14 +817,23 @@ export class PlaygroundApp extends LitElement {
         </footer>
       </aside>
 
-      <main class="stage" data-size=${this.stageSize}>
+      <main class="stage">
         <slot></slot>
         ${
           this.dragOver
-            ? html`<div class="drop-hint" aria-hidden="true">drop to load image</div>`
+            ? html`<div class="drop-hint" aria-hidden="true">drop to load photo</div>`
             : ''
         }
       </main>
+      <input class="file-picker" type="file" accept="image/*" aria-hidden="true" tabindex="-1" />
+      <div
+        class="scrim"
+        ?hidden=${!this.sheetOpen}
+        @click=${() => {
+          this.sheetOpen = false;
+        }}
+        aria-hidden="true"
+      ></div>
     `;
   }
 
@@ -879,17 +931,6 @@ export class PlaygroundApp extends LitElement {
       color: #0a0a0a;
       background: #d5d5d5;
       border-color: #d5d5d5;
-    }
-
-    .stage-sizes {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 0.3rem;
-    }
-    .chip {
-      text-align: center;
-      font-variant-numeric: tabular-nums;
-      font-size: 0.72rem;
     }
 
     .cycle-hint {
@@ -1121,53 +1162,9 @@ export class PlaygroundApp extends LitElement {
       min-height: 100vh;
       box-sizing: border-box;
     }
-
-    /* Free mode: overlay fills the stage at viewport scale (current behavior). */
-    .stage[data-size='free'] ::slotted(crt-overlay) {
+    .stage ::slotted(crt-overlay) {
       display: block;
       min-height: 100vh;
-    }
-
-    /* Sized modes: stage is a centered, padded canvas with bezel color.
-       Sized overlays use min-height (not height) so tall content can extend
-       the box rather than scroll inside it — the library's .overlay is
-       absolute inset:0 of the host's padding box, so inner scrolling would
-       leave the scanline layer pinned at the top while content scrolls
-       past, producing visible scanline-gaps on long vignettes. The outer
-       .stage handles scrolling when content exceeds viewport height. */
-    .stage:not([data-size='free']) {
-      display: flex;
-      align-items: flex-start;
-      justify-content: center;
-      padding: 1.25rem;
-      background: var(--pg-bezel);
-      overflow: auto;
-    }
-    .stage:not([data-size='free']) ::slotted(crt-overlay) {
-      --pg-overlay-padding: 1.5rem;
-      display: block;
-      max-width: 100%;
-      box-shadow: 0 0 0 1px #1f1f1f;
-    }
-    .stage[data-size='mobile'] ::slotted(crt-overlay) {
-      width: 375px;
-      min-height: 667px;
-    }
-    .stage[data-size='tablet'] ::slotted(crt-overlay) {
-      width: 1024px;
-      min-height: 768px;
-    }
-    .stage[data-size='desktop'] ::slotted(crt-overlay) {
-      width: 1440px;
-      min-height: 900px;
-    }
-    .stage[data-size='4k'] ::slotted(crt-overlay) {
-      width: 2560px;
-      min-height: 1440px;
-    }
-    .stage[data-size='ultrawide'] ::slotted(crt-overlay) {
-      width: min(1680px, 100%);
-      aspect-ratio: 21 / 9;
     }
 
     ::slotted(crt-overlay[contenteditable='true']) {
@@ -1191,17 +1188,105 @@ export class PlaygroundApp extends LitElement {
       z-index: 5;
     }
 
+    .file-picker {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      border: 0;
+    }
+
+    .sheet-handle {
+      display: none;
+    }
+    .scrim {
+      display: none;
+    }
+
     @media (max-width: 720px) {
       :host {
         grid-template-columns: 1fr;
+        grid-template-rows: 1fr;
       }
       .panel {
-        max-height: none;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        max-height: 88vh;
         border-right: none;
-        border-bottom: 1px solid #1f1f1f;
+        border-top: 1px solid #1f1f1f;
+        border-top-left-radius: 14px;
+        border-top-right-radius: 14px;
+        padding-top: 0;
+        z-index: 10;
+        box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.45);
+        transform: translateY(calc(100% - var(--sheet-peek, 124px)));
+        transition: transform 280ms cubic-bezier(0.32, 0.72, 0, 1);
       }
-      .stage:not([data-size='free']) {
-        padding: 0.5rem;
+      .panel.open {
+        transform: translateY(0);
+      }
+      .stage {
+        padding-bottom: var(--sheet-peek, 124px);
+      }
+      .sheet-handle {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        appearance: none;
+        background: transparent;
+        border: 0;
+        width: 100%;
+        padding: 0.55rem 0 0.35rem;
+        cursor: pointer;
+        touch-action: manipulation;
+        position: sticky;
+        top: 0;
+        background: #0a0a0a;
+        z-index: 1;
+      }
+      .sheet-handle .handle-bar {
+        width: 40px;
+        height: 4px;
+        border-radius: 2px;
+        background: #3a3a3a;
+        transition: background 160ms ease;
+      }
+      .sheet-handle:hover .handle-bar,
+      .sheet-handle:focus-visible .handle-bar {
+        background: #5a5a5a;
+      }
+      .brand {
+        display: none;
+      }
+      .scrim {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.32);
+        z-index: 9;
+        animation: scrim-in 180ms ease-out;
+      }
+      .scrim[hidden] {
+        display: none;
+      }
+    }
+
+    @keyframes scrim-in {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .panel {
+        transition: none;
+      }
+      .scrim {
+        animation: none;
       }
     }
   `;
