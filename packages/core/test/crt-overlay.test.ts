@@ -80,9 +80,57 @@ describe('<crt-overlay>', () => {
     expect(el.getAttribute('fidelity')).toBe('max');
   });
 
+  it('standard fidelity leaves .content unfiltered', async () => {
+    const el = await fixture<CrtOverlay>(html`<crt-overlay></crt-overlay>`);
+    const content = el.shadowRoot?.querySelector('.content') as Element;
+    expect(getComputedStyle(content).filter).toBe('none');
+  });
+
   it('attaches SVG bloom filter to .content at fidelity=high', async () => {
     const el = await fixture<CrtOverlay>(html`<crt-overlay fidelity="high"></crt-overlay>`);
     const content = el.shadowRoot?.querySelector('.content') as Element;
-    expect(getComputedStyle(content).filter).toContain('crt-bloom');
+    expect(getComputedStyle(content).filter).toMatch(/url\(["']?#?crt-bloom["']?\)/);
+  });
+
+  it('consumer preset adds aberration to the filter chain', async () => {
+    const el = await fixture<CrtOverlay>(
+      html`<crt-overlay preset="consumer" fidelity="high"></crt-overlay>`,
+    );
+    const content = el.shadowRoot?.querySelector('.content') as Element;
+    const f = getComputedStyle(content).filter;
+    expect(f).toMatch(/crt-bloom/);
+    expect(f).toMatch(/crt-aberration/);
+  });
+
+  it('non-consumer presets at fidelity=high get bloom only, no aberration', async () => {
+    const el = await fixture<CrtOverlay>(
+      html`<crt-overlay preset="pvm" fidelity="high"></crt-overlay>`,
+    );
+    const content = el.shadowRoot?.querySelector('.content') as Element;
+    const f = getComputedStyle(content).filter;
+    expect(f).toMatch(/crt-bloom/);
+    expect(f).not.toMatch(/crt-aberration/);
+  });
+
+  it('fidelity=max adds curvature via transform on .content', async () => {
+    const el = await fixture<CrtOverlay>(html`<crt-overlay fidelity="max"></crt-overlay>`);
+    const content = el.shadowRoot?.querySelector('.content') as Element;
+    const t = getComputedStyle(content).transform;
+    // Browsers serialize `perspective(800px) rotateX(0.4deg)` as a 3D matrix.
+    expect(t).not.toBe('none');
+    expect(t).toMatch(/matrix3d/);
+  });
+
+  it('non-max fidelity leaves .content with no transform', async () => {
+    const el = await fixture<CrtOverlay>(html`<crt-overlay fidelity="high"></crt-overlay>`);
+    const content = el.shadowRoot?.querySelector('.content') as Element;
+    expect(getComputedStyle(content).transform).toBe('none');
+  });
+
+  it('disabled clears .content filter even at fidelity=max', async () => {
+    const el = await fixture<CrtOverlay>(html`<crt-overlay fidelity="max" disabled></crt-overlay>`);
+    const content = el.shadowRoot?.querySelector('.content') as Element;
+    expect(getComputedStyle(content).filter).toBe('none');
+    expect(getComputedStyle(content).transform).toBe('none');
   });
 });

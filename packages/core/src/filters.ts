@@ -1,29 +1,5 @@
 import { html } from 'lit';
 
-/*
- * SVG filter primitives applied to the slotted content when `fidelity` is
- * 'high' or 'max'. Filter IDs are shadow-root-scoped so multiple <crt-overlay>
- * instances don't collide.
- *
- *   #crt-bloom       Threshold bright pixels, blur, screen-blend back.
- *                    Brightness-aware halation — bright text / images glow,
- *                    dark areas don't. Reads source pixels, not just
- *                    .crt-glow tagged elements.
- *
- *   #crt-aberration  Isolate R/G/B channels, offset R right and B left,
- *                    screen-blend. Gives actual rasters (images, video)
- *                    the convergence fringe that text-shadow already does
- *                    for glyphs.
- *
- *   #crt-ntsc        feTurbulence-based horizontal displacement to fake
- *                    dot-crawl/chroma-fringe artifacts. Only attached to
- *                    consumer preset at fidelity='max' — PVM and the
- *                    monochrome terminals never received composite signals.
- *
- * Curvature is CSS-only (transform: perspective) — feDisplacementMap with
- * a hand-authored radial gradient was overkill for the subtle effect we
- * want, and would only work at one viewport size without per-frame work.
- */
 export const crtFilters = html`
   <svg
     class="crt-filters"

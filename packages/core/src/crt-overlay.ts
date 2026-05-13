@@ -9,6 +9,8 @@ import { presetStyles } from './styles/presets.js';
 export type CrtPreset = 'pvm' | 'consumer' | 'amber' | 'green' | 'p4-white';
 export type CrtFidelity = 'standard' | 'high' | 'max';
 
+/* Set, not a counter: HMR can disconnect instances that never finished
+   connecting; a counter would underflow. */
 const fullscreenInstances = new Set<CrtOverlay>();
 
 const HALATION_VARS = ['--crt-glow-shadow', '--crt-aberration-shadow'] as const;
@@ -35,16 +37,6 @@ function clearDocumentElement(): void {
   for (const v of HALATION_VARS) {
     root.style.removeProperty(v);
   }
-}
-
-/* Users with reduced-motion or reduced-transparency preferences see CRT
-   filters as visual noise; silently render as if fidelity='standard'. */
-function prefersReducedEffects(): boolean {
-  if (typeof window === 'undefined' || !window.matchMedia) return false;
-  return (
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
-    window.matchMedia('(prefers-reduced-transparency: reduce)').matches
-  );
 }
 
 /**
@@ -74,8 +66,11 @@ function prefersReducedEffects(): boolean {
  * units (cqi/cqb fallback) so a 200×150 widget and a 4K fullscreen both
  * render a coherent CRT rather than a fixed-pixel screen filter.
  *
- * `prefers-reduced-motion` or `prefers-reduced-transparency` silently
- * downgrade `fidelity` to `standard` — no broken state for users opting out.
+ * `prefers-reduced-transparency: reduce` silently downgrades `fidelity` to
+ * `standard`. Note that at `fidelity='max'` the `.content` wrapper's
+ * `transform: perspective` becomes a containing block for fixed-positioned
+ * descendants — slotted `position: fixed` dialogs will anchor to `.content`,
+ * not the viewport.
  *
  * @element crt-overlay
  * @slot - Content to overlay. Ignored in `fullscreen` mode.
@@ -116,21 +111,14 @@ export class CrtOverlay extends LitElement {
   disabled = false;
 
   /**
-   * Visual fidelity tier. `standard` is pure CSS (current behavior).
-   * `high` adds SVG-filter bloom + raster chromatic aberration.
-   * `max` adds NTSC artifacts (consumer preset) and curvature.
-   * Auto-downgrades to `standard` under `prefers-reduced-motion` or
-   * `prefers-reduced-transparency`.
+   * Visual fidelity tier. `standard` is pure CSS. `high` adds SVG-filter
+   * bloom and (on the consumer preset) chromatic aberration. `max` adds NTSC
+   * artifacts (consumer only) and curvature. Auto-downgrades to `standard`
+   * under `prefers-reduced-transparency`.
    * @attr fidelity
    */
   @property({ type: String, reflect: true })
   fidelity: CrtFidelity = 'standard';
-
-  /* The attribute the user requested vs. what we actually render. The
-     effective value strips back to 'standard' under reduced-effects prefs. */
-  get effectiveFidelity(): CrtFidelity {
-    return prefersReducedEffects() ? 'standard' : this.fidelity;
-  }
 
   override connectedCallback(): void {
     super.connectedCallback();
@@ -160,6 +148,8 @@ export class CrtOverlay extends LitElement {
 
   #registerFullscreen(): void {
     fullscreenInstances.add(this);
+    // rAF (not updateComplete) lets the preset's var cascade settle without
+    // racing attributeChangedCallback microtasks.
     requestAnimationFrame(() => {
       if (!fullscreenInstances.has(this)) return;
       publishToDocumentElement(readHalationVars(this));
