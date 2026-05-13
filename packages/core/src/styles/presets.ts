@@ -50,18 +50,18 @@ export const presetStyles = css`
       rgba(0, 0, 0, 0.55) var(--crt-pitch)
     );
     --crt-corner-warm: radial-gradient(
-      circle 70cqmin at center,
+      ellipse at center,
       transparent 70%,
       rgba(255, 120, 80, 0.04) 92%,
       transparent 100%
     );
     --crt-corner-cool: radial-gradient(
-      circle 70cqmin at center,
+      ellipse at center,
       transparent 78%,
       rgba(80, 140, 255, 0.04) 100%
     );
     --crt-vignette: radial-gradient(
-      circle 70cqmin at center,
+      ellipse at center,
       transparent 60%,
       rgba(0, 0, 0, 0.2) 100%
     );
@@ -111,18 +111,18 @@ export const presetStyles = css`
       rgba(0, 0, 0, 0.35) var(--crt-pitch)
     );
     --crt-corner-warm: radial-gradient(
-      circle 70cqmin at center,
+      ellipse at center,
       transparent 65%,
       rgba(255, 120, 80, 0.04) 95%,
       transparent 100%
     );
     --crt-corner-cool: radial-gradient(
-      circle 70cqmin at center,
+      ellipse at center,
       transparent 60%,
       rgba(80, 140, 255, 0.09) 100%
     );
     --crt-vignette: radial-gradient(
-      circle 70cqmin at center,
+      ellipse at center,
       transparent 40%,
       rgba(0, 0, 0, 0.38) 100%
     );
@@ -155,13 +155,13 @@ export const presetStyles = css`
       rgba(20, 8, 0, 0.6) var(--crt-pitch)
     );
     --crt-corner-warm: radial-gradient(
-      circle 70cqmin at center,
+      ellipse at center,
       transparent 60%,
       rgba(255, 140, 40, 0.06) 100%
     );
     --crt-corner-cool: none;
     --crt-vignette: radial-gradient(
-      circle 70cqmin at center,
+      ellipse at center,
       transparent 50%,
       rgba(0, 0, 0, 0.32) 100%
     );
@@ -196,12 +196,12 @@ export const presetStyles = css`
     );
     --crt-corner-warm: none;
     --crt-corner-cool: radial-gradient(
-      circle 70cqmin at center,
+      ellipse at center,
       transparent 65%,
       rgba(220, 230, 240, 0.03) 100%
     );
     --crt-vignette: radial-gradient(
-      circle 70cqmin at center,
+      ellipse at center,
       transparent 55%,
       rgba(0, 0, 0, 0.28) 100%
     );
@@ -235,12 +235,12 @@ export const presetStyles = css`
     );
     --crt-corner-warm: none;
     --crt-corner-cool: radial-gradient(
-      circle 70cqmin at center,
+      ellipse at center,
       transparent 60%,
       rgba(60, 255, 120, 0.05) 100%
     );
     --crt-vignette: radial-gradient(
-      circle 70cqmin at center,
+      ellipse at center,
       transparent 50%,
       rgba(0, 0, 0, 0.32) 100%
     );
