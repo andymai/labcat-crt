@@ -1,23 +1,16 @@
 import { css } from 'lit';
 
 /*
- * Animations are preset-locked: a consumer can't accidentally turn flicker on
- * for PVM via a CSS-var override because the keyframes aren't bound to that
- * preset's selector. Reduced-motion always wins. Disabled state pauses
- * animations, not unbinds them (so resume is instant).
- *
- * scanline-drift: ~30s slow vertical scroll of the scanline pattern. Sells
- *   "electron beam tracing" without distracting. Bound on amber, green, and
- *   consumer (any preset that isn't a calibrated broadcast monitor).
- *
- * phosphor-shimmer: ~120ms opacity wobble on the overlay layer. Cheated
- *   well below 60Hz refresh so it reads as analog drift instead of stuttery
- *   flashing. Consumer preset only.
+ * Animations are preset-locked (bound to preset selectors, not CSS vars) so
+ * consumers can't accidentally turn flicker on for PVM. The drift distance
+ * is calc(var(--crt-pitch) * 20) so the line-rate the user perceives is
+ * identical across viewport sizes — a small overlay drifts the same number
+ * of pitches per second as a 4K fullscreen one.
  */
 export const animationStyles = css`
   @keyframes crt-scanline-drift {
     from { background-position-y: 0px, 0, 0; }
-    to   { background-position-y: 0px, 0, 60px; }
+    to   { background-position-y: 0px, 0, calc(var(--crt-pitch) * 20); }
   }
 
   @keyframes crt-phosphor-shimmer {

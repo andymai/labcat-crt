@@ -1,31 +1,33 @@
 import { css } from 'lit';
 
 /*
- * Structural + always-on layers.
+ * Size-aware realism: every visible feature derives from container query
+ * units so one preset renders a "real" CRT at any viewport size. In
+ * fullscreen mode the host is `display: contents` (no box) and cqb/cqi fall
+ * back to the small viewport per spec — same "constant line count" feel,
+ * no conditional formula.
  *
- * The overlay composes up to three background images (noise + grille +
- * scanlines) plus an ::after pseudo for vignette and corner chromatic fringe.
- * Each layer is driven by a CSS variable so presets can set or unset
- * individual layers (e.g. monochrome presets disable the aperture grille
- * with --crt-grille: none).
- *
- * Halation lives on the host as CSS variables (--crt-glow-shadow,
- * --crt-aberration-shadow). The companion glow.css binds them to .crt-glow.
+ * Halation vars (--crt-glow-shadow, --crt-aberration-shadow) are in em so
+ * bloom scales with text size, matching how real phosphor bloom intensifies
+ * with stroke width. glow.css binds them to .crt-glow.
  */
 export const baseStyles = css`
   :host {
     display: block;
     position: relative;
     isolation: isolate;
+    container-type: size;
 
-    /* Halation vars are composed from glow + aberration parts so a preset
-       can tune one without rewriting the other. Defaults are a tight bloom
-       with no aberration; preset rules override per archetype. */
+    --crt-lines: 480;
+    --crt-triads: 480;
+
     --crt-glow-color: currentColor;
     --crt-glow-shadow:
-      0 0 0.5px var(--crt-glow-color),
-      0 0 4px color-mix(in srgb, var(--crt-glow-color) 70%, transparent),
-      0 0 14px color-mix(in srgb, var(--crt-glow-color) 30%, transparent);
+      0 0 0.03em var(--crt-glow-color),
+      0 0 0.25em color-mix(in srgb, var(--crt-glow-color) 70%, transparent),
+      0 0 0.875em color-mix(in srgb, var(--crt-glow-color) 30%, transparent);
+
+    --crt-aberration-x: 0;
     --crt-aberration-shadow: 0 0 0 transparent;
   }
 
@@ -43,15 +45,23 @@ export const baseStyles = css`
     pointer-events: none;
     z-index: 1;
 
+    /* Declared on .overlay (not :host) because a container cannot query
+       itself; cqb/cqi must resolve in a descendant. */
+    --crt-pitch: clamp(1.5px, 100cqb / var(--crt-lines), 6px);
+    --crt-grille-pitch: clamp(1.5px, 100cqi / var(--crt-triads), 6px);
+    --crt-noise-size: clamp(120px, 18cqmin, 360px);
+
     background-image:
       var(--crt-noise, none),
       var(--crt-grille, none),
       var(--crt-scanlines, none);
     background-size:
-      var(--crt-noise-size, 180px 180px),
+      var(--crt-noise-size) var(--crt-noise-size),
       auto,
       auto;
     background-repeat: repeat, repeat, repeat;
+
+    mix-blend-mode: var(--crt-blend-mode, normal);
 
     -webkit-backdrop-filter:
       contrast(var(--crt-gamma-contrast, 1))

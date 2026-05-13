@@ -4,21 +4,41 @@ import { customElement, property, query, state } from 'lit/decorators.js';
 
 const PRESETS: readonly CrtPreset[] = ['pvm', 'consumer', 'amber', 'green', 'p4-white'] as const;
 
-/*
- * CSS variables exposed in the playground. The slider set is curated: gamma
- * filters and the glow color are the levers most useful for exploration. Layer
- * toggles (scanlines/grille/noise) flip whole var values to `none`.
- */
+type StageSizeKey = 'free' | 'mobile' | 'tablet' | 'desktop' | '4k' | 'ultrawide';
+const STAGE_SIZES: readonly { key: StageSizeKey; label: string }[] = [
+  { key: 'free', label: 'free' },
+  { key: 'mobile', label: '375' },
+  { key: 'tablet', label: '1024' },
+  { key: 'desktop', label: '1440' },
+  { key: '4k', label: '2560' },
+  { key: 'ultrawide', label: '21:9' },
+] as const;
+
+type SliderKey = 'contrast' | 'brightness' | 'saturate' | 'lines' | 'aberration';
+type SliderTier = 'quick' | 'advanced';
 type SliderSpec = {
-  key: 'contrast' | 'brightness' | 'saturate';
+  key: SliderKey;
   var: string;
   label: string;
   min: number;
   max: number;
   step: number;
+  tier: SliderTier;
+  unit?: 'px';
 };
 
 const SLIDERS: readonly SliderSpec[] = [
+  { key: 'lines', var: '--crt-lines', label: 'lines', min: 200, max: 700, step: 1, tier: 'quick' },
+  {
+    key: 'aberration',
+    var: '--crt-aberration-x',
+    label: 'aberration',
+    min: 0,
+    max: 2,
+    step: 0.05,
+    tier: 'advanced',
+    unit: 'px',
+  },
   {
     key: 'contrast',
     var: '--crt-gamma-contrast',
@@ -26,6 +46,7 @@ const SLIDERS: readonly SliderSpec[] = [
     min: 0.8,
     max: 1.4,
     step: 0.01,
+    tier: 'advanced',
   },
   {
     key: 'brightness',
@@ -34,8 +55,17 @@ const SLIDERS: readonly SliderSpec[] = [
     min: 0.7,
     max: 1.2,
     step: 0.01,
+    tier: 'advanced',
   },
-  { key: 'saturate', var: '--crt-gamma-saturate', label: 'saturate', min: 0, max: 1.5, step: 0.01 },
+  {
+    key: 'saturate',
+    var: '--crt-gamma-saturate',
+    label: 'saturate',
+    min: 0,
+    max: 1.5,
+    step: 0.01,
+    tier: 'advanced',
+  },
 ] as const;
 
 type LayerKey = 'scanlines' | 'grille';
@@ -44,16 +74,9 @@ const LAYERS: readonly { key: LayerKey; var: string; label: string }[] = [
   { key: 'grille', var: '--crt-grille', label: 'aperture grille' },
 ] as const;
 
-/*
- * Noise gets its own slider rather than a checkbox: the SVG turbulence at
- * preset-default alpha (2.5% – 4%) is real but barely perceptible against
- * scanlines + grille, so a binary toggle gives the impression nothing
- * happened. The slider amplifies up to 0.2 so the noise pattern becomes
- * obviously visible, and runs down to 0 for the "off" position.
- *
- * The library bakes alpha into the SVG data URL, so the playground generates
- * its own SVG client-side with the user's chosen alpha when overriding.
- */
+/* Slider, not a checkbox: at preset-default alpha (2.5%–4%) noise is barely
+ * perceptible against scanlines + grille, so a toggle reads as a no-op.
+ * NOISE_MAX amplifies up to where the pattern is obviously visible. */
 const NOISE_MAX = 0.2;
 const NOISE_STEP = 0.005;
 const NOISE_ALPHA_RE = /0 0 0 (\d*\.?\d+) 0\s*'\s*\/\s*>\s*<rect/;
@@ -63,12 +86,14 @@ function buildNoiseSvgUrl(alpha: number): string {
   return `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 ${a} 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")`;
 }
 
-function readPresetNoiseAlpha(overlay: HTMLElement): number {
-  const raw = getComputedStyle(overlay).getPropertyValue('--crt-noise').trim();
-  const match = raw.match(NOISE_ALPHA_RE);
-  if (!match) return 0.03;
-  const parsed = Number.parseFloat(match[1] ?? '');
-  return Number.isFinite(parsed) ? parsed : 0.03;
+const NOISE_ALPHA_FALLBACK = 0.03;
+
+function readPresetNoiseAlpha(overlay: CrtOverlay): number {
+  const overlayLayer = overlay.shadowRoot?.querySelector('.overlay');
+  if (!overlayLayer) return NOISE_ALPHA_FALLBACK;
+  const raw = getComputedStyle(overlayLayer).getPropertyValue('--crt-noise').trim();
+  const parsed = Number.parseFloat(raw.match(NOISE_ALPHA_RE)?.[1] ?? '');
+  return Number.isFinite(parsed) ? parsed : NOISE_ALPHA_FALLBACK;
 }
 
 /*
@@ -78,10 +103,6 @@ function readPresetNoiseAlpha(overlay: HTMLElement): number {
  *   - p4-white uses near-white (#f0f0e8) → invisible on cream
  *   - amber's #ffb43a washes out; needs a deeper amber to read on cream
  *   - green's #4cff8a is vivid enough to keep
- *
- * Using preset-native glow tones in light mode keeps the visual identity of
- * each preset intact — without this, every preset looks like sepia ink-bleed
- * and you can't tell them apart. A user-picked custom glow still overrides.
  */
 type ContentTheme = 'dark' | 'light';
 const LIGHT_THEME = {
@@ -90,12 +111,14 @@ const LIGHT_THEME = {
   codeBg: 'rgba(0, 0, 0, 0.08)',
 } as const;
 const LIGHT_GLOW_BY_PRESET: Record<CrtPreset, string> = {
-  pvm: '#2a4a7a', // cool steel blue — pro broadcast feel
-  consumer: '#a04020', // warm rust — NTSC TV warmth
-  amber: '#c0651c', // deeper amber, visible on cream
-  green: '#1a6a3a', // forest green
-  'p4-white': '#3a3a3a', // neutral dark grey
+  pvm: '#2a4a7a',
+  consumer: '#a04020',
+  amber: '#c0651c',
+  green: '#1a6a3a',
+  'p4-white': '#3a3a3a',
 };
+
+const CYCLE_INTERVAL_MS = 4000;
 
 @customElement('playground-app')
 export class PlaygroundApp extends LitElement {
@@ -105,6 +128,16 @@ export class PlaygroundApp extends LitElement {
   @property({ type: Boolean }) editing = false;
   @property({ type: String }) contentTheme: ContentTheme = 'dark';
 
+  @state() private stageSize: StageSizeKey = 'free';
+
+  @state() private cycling = false;
+
+  @state() private advancedOpen = false;
+  @state() private installOpen = false;
+
+  @state() private userImageUrl: string | null = null;
+  @state() private dragOver = false;
+
   @state() private layersOff: Record<LayerKey, boolean> = {
     scanlines: false,
     grille: false,
@@ -113,10 +146,12 @@ export class PlaygroundApp extends LitElement {
   @state() private noiseAlpha = 0.03;
   @state() private noiseOverridden = false;
 
-  @state() private sliderValues: Record<SliderSpec['key'], number> = {
+  @state() private sliderValues: Record<SliderKey, number> = {
     contrast: 1,
     brightness: 1,
     saturate: 1,
+    lines: 480,
+    aberration: 0,
   };
 
   @state() private overrides = new Set<string>();
@@ -125,19 +160,28 @@ export class PlaygroundApp extends LitElement {
   @state() private glowColor = '#ffffff';
 
   @state() private copyState: 'idle' | 'copied' = 'idle';
+  @state() private lineCopied: number | null = null;
 
   @query('slot') private slotEl!: HTMLSlotElement;
+  @query('.stage') private stageEl!: HTMLElement;
 
-  /*
-   * The overlay lives in light DOM (so its own slot stays user-authorable) and
-   * gets projected into our shadow DOM via <slot>. We grab it once on first
-   * paint and again whenever the slot's assignment changes.
-   */
   #overlay: CrtOverlay | null = null;
+  #cycleTimer: number | null = null;
 
   override firstUpdated(): void {
     this.#refreshOverlay();
     this.slotEl.addEventListener('slotchange', () => this.#refreshOverlay());
+    this.#startCycleIfWanted();
+    this.#wireDragDrop();
+  }
+
+  override disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this.#stopCycle();
+    if (this.userImageUrl) {
+      URL.revokeObjectURL(this.userImageUrl);
+      this.userImageUrl = null;
+    }
   }
 
   #refreshOverlay(): void {
@@ -146,11 +190,69 @@ export class PlaygroundApp extends LitElement {
     this.#overlay = overlay;
     if (overlay) {
       this.#applyAll();
+      this.#syncDropZones();
       this.#readSliderDefaults();
     }
   }
 
-  /* Read live computed values for sliders so they start in sync with the preset. */
+  /* On first load (when motion is allowed), auto-cycle presets to demonstrate
+     the range. The first interaction with any control pins the current preset
+     and ends cycling for the session. */
+  #startCycleIfWanted(): void {
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    if (reduced) return;
+    this.cycling = true;
+    let index = PRESETS.indexOf(this.preset);
+    this.#cycleTimer = window.setInterval(() => {
+      index = (index + 1) % PRESETS.length;
+      this.preset = PRESETS[index] ?? 'pvm';
+    }, CYCLE_INTERVAL_MS);
+  }
+
+  #stopCycle(): void {
+    if (this.#cycleTimer != null) {
+      clearInterval(this.#cycleTimer);
+      this.#cycleTimer = null;
+    }
+    this.cycling = false;
+  }
+
+  #userInteracted(): void {
+    if (this.cycling) this.#stopCycle();
+  }
+
+  /* One image mirrored to all vignettes so it persists across preset switches. */
+  #wireDragDrop(): void {
+    const stage = this.stageEl;
+    if (!stage) return;
+    stage.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      this.dragOver = true;
+    });
+    stage.addEventListener('dragleave', (e) => {
+      // Only clear when leaving the stage itself, not its children
+      if (e.target === stage) this.dragOver = false;
+    });
+    stage.addEventListener('drop', (e: DragEvent) => {
+      e.preventDefault();
+      this.dragOver = false;
+      const file = e.dataTransfer?.files[0];
+      if (!file?.type.startsWith('image/')) return;
+      this.#userInteracted();
+      this.#setUserImage(URL.createObjectURL(file));
+    });
+  }
+
+  #setUserImage(url: string): void {
+    if (this.userImageUrl) URL.revokeObjectURL(this.userImageUrl);
+    this.userImageUrl = url;
+  }
+
+  #removeUserImage(): void {
+    if (this.userImageUrl) URL.revokeObjectURL(this.userImageUrl);
+    this.userImageUrl = null;
+  }
+
   #readSliderDefaults(): void {
     if (!this.#overlay) return;
     const cs = getComputedStyle(this.#overlay);
@@ -159,7 +261,10 @@ export class PlaygroundApp extends LitElement {
       if (this.overrides.has(s.var)) continue;
       const raw = cs.getPropertyValue(s.var).trim();
       const parsed = Number.parseFloat(raw);
-      if (Number.isFinite(parsed)) next[s.key] = parsed;
+      if (!Number.isFinite(parsed)) continue;
+      // Preset aberration defaults are em-based; the slider operates in px.
+      // 1em ≈ 16px (root font size), so normalize for an honest readout.
+      next[s.key] = s.key === 'aberration' && raw.includes('em') ? parsed * 16 : parsed;
     }
     this.sliderValues = next;
     if (!this.noiseOverridden) {
@@ -168,24 +273,28 @@ export class PlaygroundApp extends LitElement {
   }
 
   override updated(changed: Map<string, unknown>): void {
-    if (
-      changed.has('preset') ||
-      changed.has('fullscreen') ||
-      changed.has('disabled') ||
-      changed.has('editing') ||
-      changed.has('layersOff') ||
-      changed.has('sliderValues') ||
-      changed.has('overrides') ||
-      changed.has('glowColorEnabled') ||
-      changed.has('glowColor') ||
-      changed.has('noiseAlpha') ||
-      changed.has('noiseOverridden') ||
-      changed.has('contentTheme')
-    ) {
-      this.#applyAll();
+    // Restricted to keys that change the overlay — UI-only state (toasts,
+    // disclosures, cycle indicator) must not trigger #applyAll.
+    const overlayKeys = [
+      'preset',
+      'fullscreen',
+      'disabled',
+      'editing',
+      'layersOff',
+      'sliderValues',
+      'overrides',
+      'glowColorEnabled',
+      'glowColor',
+      'noiseAlpha',
+      'noiseOverridden',
+      'contentTheme',
+      'stageSize',
+    ];
+    if (overlayKeys.some((k) => changed.has(k))) this.#applyAll();
+    if (changed.has('userImageUrl') || changed.has('dragOver') || changed.has('preset')) {
+      this.#syncDropZones();
     }
     if (changed.has('preset')) {
-      // Preset baseline shifted; reset slider readouts (unless user overrode).
       requestAnimationFrame(() => this.#readSliderDefaults());
     }
   }
@@ -201,27 +310,35 @@ export class PlaygroundApp extends LitElement {
     if (this.editing) o.setAttribute('contenteditable', 'true');
     else o.removeAttribute('contenteditable');
 
-    for (const layer of LAYERS) {
-      if (this.layersOff[layer.key]) o.style.setProperty(layer.var, 'none');
-      else o.style.removeProperty(layer.var);
+    if (this.stageEl) this.stageEl.dataset.size = this.stageSize;
+
+    const layer = o.shadowRoot?.querySelector('.overlay') as HTMLElement | null;
+    for (const lyr of LAYERS) {
+      if (!layer) break;
+      if (this.layersOff[lyr.key]) layer.style.setProperty(lyr.var, 'none');
+      else layer.style.removeProperty(lyr.var);
     }
     for (const s of SLIDERS) {
-      if (this.overrides.has(s.var)) o.style.setProperty(s.var, String(this.sliderValues[s.key]));
-      else o.style.removeProperty(s.var);
+      if (this.overrides.has(s.var)) {
+        const v = this.sliderValues[s.key];
+        o.style.setProperty(s.var, s.unit ? `${v}${s.unit}` : String(v));
+      } else o.style.removeProperty(s.var);
     }
-    // Glow priority: user override > theme-per-preset default > preset default.
+
     const themeGlow = this.contentTheme === 'light' ? LIGHT_GLOW_BY_PRESET[this.preset] : null;
     const glowOverride = this.glowColorEnabled ? this.glowColor : themeGlow;
     if (glowOverride) o.style.setProperty('--crt-glow-color', glowOverride);
     else o.style.removeProperty('--crt-glow-color');
 
-    if (this.noiseOverridden) {
-      o.style.setProperty(
-        '--crt-noise',
-        this.noiseAlpha <= 0 ? 'none' : buildNoiseSvgUrl(this.noiseAlpha),
-      );
-    } else {
-      o.style.removeProperty('--crt-noise');
+    if (layer) {
+      if (this.noiseOverridden) {
+        layer.style.setProperty(
+          '--crt-noise',
+          this.noiseAlpha <= 0 ? 'none' : buildNoiseSvgUrl(this.noiseAlpha),
+        );
+      } else {
+        layer.style.removeProperty('--crt-noise');
+      }
     }
 
     if (this.contentTheme === 'light') {
@@ -235,13 +352,36 @@ export class PlaygroundApp extends LitElement {
     }
   }
 
-  #setSlider(spec: SliderSpec, value: number): void {
-    this.sliderValues = { ...this.sliderValues, [spec.key]: value };
-    if (!this.overrides.has(spec.var)) {
-      this.overrides = new Set([...this.overrides, spec.var]);
-    } else {
-      this.overrides = new Set(this.overrides);
+  /* Drop-zones live in light DOM (index.astro); we mutate them directly. */
+  #syncDropZones(): void {
+    if (!this.#overlay) return;
+    const dropZones = this.#overlay.querySelectorAll<HTMLElement>('.drop-zone');
+    for (const dz of dropZones) {
+      for (const el of dz.querySelectorAll('img, .remove-btn')) el.remove();
+      dz.toggleAttribute('data-dragover', this.dragOver);
+      if (this.userImageUrl) {
+        const img = document.createElement('img');
+        img.src = this.userImageUrl;
+        img.alt = 'user-supplied photo through the CRT effect';
+        dz.appendChild(img);
+        const rm = document.createElement('button');
+        rm.type = 'button';
+        rm.className = 'remove-btn';
+        rm.textContent = '× remove';
+        rm.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.#userInteracted();
+          this.#removeUserImage();
+        });
+        dz.appendChild(rm);
+      }
     }
+  }
+
+  #setSlider(spec: SliderSpec, value: number): void {
+    this.#userInteracted();
+    this.sliderValues = { ...this.sliderValues, [spec.key]: value };
+    this.overrides = new Set([...this.overrides, spec.var]);
   }
 
   #resetSlider(spec: SliderSpec): void {
@@ -249,19 +389,11 @@ export class PlaygroundApp extends LitElement {
     const next = new Set(this.overrides);
     next.delete(spec.var);
     this.overrides = next;
-    // Inline style is cleared in #applyAll(); after the next frame the preset
-    // default is observable via getComputedStyle. Read it back into the slider.
-    requestAnimationFrame(() => {
-      if (!this.#overlay) return;
-      const raw = getComputedStyle(this.#overlay).getPropertyValue(spec.var).trim();
-      const parsed = Number.parseFloat(raw);
-      if (Number.isFinite(parsed)) {
-        this.sliderValues = { ...this.sliderValues, [spec.key]: parsed };
-      }
-    });
+    requestAnimationFrame(() => this.#readSliderDefaults());
   }
 
   #toggleLayer(key: LayerKey): void {
+    this.#userInteracted();
     this.layersOff = { ...this.layersOff, [key]: !this.layersOff[key] };
   }
 
@@ -274,6 +406,7 @@ export class PlaygroundApp extends LitElement {
   }
 
   #setNoiseAlpha(value: number): void {
+    this.#userInteracted();
     this.noiseAlpha = value;
     this.noiseOverridden = true;
   }
@@ -291,28 +424,37 @@ export class PlaygroundApp extends LitElement {
     if (this.fullscreen) attrs.push('fullscreen');
     if (this.disabled) attrs.push('disabled');
 
-    const styleParts: string[] = [];
-    for (const layer of LAYERS) {
-      if (this.layersOff[layer.key]) styleParts.push(`${layer.var}: none`);
-    }
+    const hostStyleParts: string[] = [];
+    const partStyleParts: string[] = [];
     for (const s of SLIDERS) {
-      if (this.overrides.has(s.var)) styleParts.push(`${s.var}: ${this.sliderValues[s.key]}`);
+      if (this.overrides.has(s.var)) {
+        const v = this.sliderValues[s.key];
+        hostStyleParts.push(`${s.var}: ${s.unit ? `${v}${s.unit}` : v}`);
+      }
     }
-    if (this.glowColorEnabled) styleParts.push(`--crt-glow-color: ${this.glowColor}`);
+    if (this.glowColorEnabled) hostStyleParts.push(`--crt-glow-color: ${this.glowColor}`);
+    for (const layer of LAYERS) {
+      if (this.layersOff[layer.key]) partStyleParts.push(`${layer.var}: none`);
+    }
     if (this.noiseOverridden) {
-      styleParts.push(
+      partStyleParts.push(
         this.noiseAlpha <= 0
           ? '--crt-noise: none'
           : `--crt-noise: ${buildNoiseSvgUrl(this.noiseAlpha)}`,
       );
     }
 
-    const styleAttr = styleParts.length > 0 ? ` style="${styleParts.join('; ')}"` : '';
+    const styleAttr = hostStyleParts.length > 0 ? ` style="${hostStyleParts.join('; ')}"` : '';
     const slotted = this.fullscreen ? '' : '\n  …your content…\n';
-    return `<crt-overlay ${attrs.join(' ')}${styleAttr}>${slotted}</crt-overlay>`;
+    const partBlock =
+      partStyleParts.length > 0
+        ? `<style>\n  crt-overlay::part(overlay) {\n    ${partStyleParts.join(';\n    ')};\n  }\n</style>\n`
+        : '';
+    return `${partBlock}<crt-overlay ${attrs.join(' ')}${styleAttr}>${slotted}</crt-overlay>`;
   }
 
   async #copyExport(): Promise<void> {
+    this.#userInteracted();
     const text = this.#buildExport();
     try {
       await navigator.clipboard.writeText(text);
@@ -321,18 +463,72 @@ export class PlaygroundApp extends LitElement {
         this.copyState = 'idle';
       }, 1400);
     } catch {
-      // clipboard API can be denied (insecure contexts, permissions). Fall back
-      // to a transient prompt so the user can still grab the snippet.
       window.prompt('Copy the snippet:', text);
     }
   }
 
+  async #copyLine(index: number, text: string): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(text);
+      this.lineCopied = index;
+      setTimeout(() => {
+        if (this.lineCopied === index) this.lineCopied = null;
+      }, 1200);
+    } catch {
+      window.prompt('Copy:', text);
+    }
+  }
+
+  #renderSlider(s: SliderSpec) {
+    const v = this.sliderValues[s.key];
+    const display = s.step >= 1 ? v.toFixed(0) : v.toFixed(s.step < 0.05 ? 3 : 2);
+    return html`
+      <label class="slider">
+        <span class="slider-label">
+          <span>${s.label}</span>
+          <span class="value-cluster">
+            <button
+              type="button"
+              class="reset-btn"
+              title="reset to preset default"
+              aria-label="reset ${s.label} to preset default"
+              ?hidden=${!this.overrides.has(s.var)}
+              @click=${(e: Event) => {
+                e.preventDefault();
+                this.#userInteracted();
+                this.#resetSlider(s);
+              }}
+            >
+              ↻
+            </button>
+            <span class="value">${display}${s.unit ?? ''}</span>
+          </span>
+        </span>
+        <input
+          type="range"
+          min=${s.min}
+          max=${s.max}
+          step=${s.step}
+          .value=${String(v)}
+          @input=${(e: Event) => {
+            const value = Number.parseFloat((e.target as HTMLInputElement).value);
+            this.#setSlider(s, value);
+          }}
+        />
+      </label>
+    `;
+  }
+
   override render() {
+    const quickSliders = SLIDERS.filter((s) => s.tier === 'quick');
+    const advancedSliders = SLIDERS.filter((s) => s.tier === 'advanced');
+
     return html`
       <aside class="panel" aria-label="CRT playground controls">
         <header class="brand">
           <span class="dot"></span>
-          <span class="title">@labcat/crt playground</span>
+          <span class="title">@labcat/crt</span>
+          <span class="tag">playground</span>
         </header>
 
         <section class="group">
@@ -344,6 +540,7 @@ export class PlaygroundApp extends LitElement {
                   type="button"
                   class=${p === this.preset ? 'preset on' : 'preset'}
                   @click=${() => {
+                    this.#userInteracted();
                     this.preset = p;
                   }}
                 >
@@ -352,15 +549,24 @@ export class PlaygroundApp extends LitElement {
               `,
             )}
           </div>
+          ${
+            this.cycling
+              ? html`<p class="cycle-hint">
+                <span class="cycle-dot"></span>
+                cycling presets · click any control to pin
+              </p>`
+              : ''
+          }
         </section>
 
         <section class="group">
-          <h2>Content theme</h2>
-          <div class="presets">
+          <h2>Theme</h2>
+          <div class="presets two">
             <button
               type="button"
               class=${this.contentTheme === 'dark' ? 'preset on' : 'preset'}
               @click=${() => {
+                this.#userInteracted();
                 this.contentTheme = 'dark';
               }}
             >
@@ -370,6 +576,7 @@ export class PlaygroundApp extends LitElement {
               type="button"
               class=${this.contentTheme === 'light' ? 'preset on' : 'preset'}
               @click=${() => {
+                this.#userInteracted();
                 this.contentTheme = 'light';
               }}
             >
@@ -379,136 +586,30 @@ export class PlaygroundApp extends LitElement {
         </section>
 
         <section class="group">
-          <h2>Attributes</h2>
-          <label class="row">
-            <input
-              type="checkbox"
-              .checked=${this.fullscreen}
-              @change=${(e: Event) => {
-                this.fullscreen = (e.target as HTMLInputElement).checked;
-              }}
-            />
-            <span>fullscreen</span>
-          </label>
-          <label class="row">
-            <input
-              type="checkbox"
-              .checked=${this.disabled}
-              @change=${(e: Event) => {
-                this.disabled = (e.target as HTMLInputElement).checked;
-              }}
-            />
-            <span>disabled</span>
-          </label>
-          <label class="row">
-            <input
-              type="checkbox"
-              .checked=${this.editing}
-              ?disabled=${this.fullscreen}
-              @change=${(e: Event) => {
-                this.editing = (e.target as HTMLInputElement).checked;
-              }}
-            />
-            <span>edit slot content</span>
-          </label>
-        </section>
-
-        <section class="group">
-          <h2>Layers</h2>
-          ${LAYERS.map(
-            (layer) => html`
-              <label class="row">
-                <input
-                  type="checkbox"
-                  .checked=${!this.layersOff[layer.key]}
-                  @change=${() => this.#toggleLayer(layer.key)}
-                />
-                <span>${layer.label}</span>
-              </label>
-            `,
-          )}
-        </section>
-
-        <section class="group">
-          <h2>Gamma</h2>
-          ${SLIDERS.map(
-            (s) => html`
-              <label class="slider">
-                <span class="slider-label">
-                  <span>${s.label}</span>
-                  <span class="value-cluster">
-                    <button
-                      type="button"
-                      class="reset-btn"
-                      title="reset to preset default"
-                      aria-label="reset ${s.label} to preset default"
-                      ?hidden=${!this.overrides.has(s.var)}
-                      @click=${(e: Event) => {
-                        // Stop the click from toggling the label-bound input focus.
-                        e.preventDefault();
-                        this.#resetSlider(s);
-                      }}
-                    >
-                      ↻
-                    </button>
-                    <span class="value">${this.sliderValues[s.key].toFixed(2)}</span>
-                  </span>
-                </span>
-                <input
-                  type="range"
-                  min=${s.min}
-                  max=${s.max}
-                  step=${s.step}
-                  .value=${String(this.sliderValues[s.key])}
-                  @input=${(e: Event) => {
-                    const v = Number.parseFloat((e.target as HTMLInputElement).value);
-                    this.#setSlider(s, v);
-                  }}
-                />
-              </label>
-            `,
-          )}
-        </section>
-
-        <section class="group">
-          <h2>Phosphor noise</h2>
-          <label class="slider">
-            <span class="slider-label">
-              <span>alpha</span>
-              <span class="value-cluster">
+          <h2>Stage size</h2>
+          <div class="stage-sizes">
+            ${STAGE_SIZES.map(
+              (s) => html`
                 <button
                   type="button"
-                  class="reset-btn"
-                  title="reset to preset default"
-                  aria-label="reset noise alpha to preset default"
-                  ?hidden=${!this.noiseOverridden}
-                  @click=${(e: Event) => {
-                    e.preventDefault();
-                    this.#resetNoise();
+                  class=${s.key === this.stageSize ? 'chip on' : 'chip'}
+                  @click=${() => {
+                    this.#userInteracted();
+                    this.stageSize = s.key;
                   }}
+                  title=${s.key}
                 >
-                  ↻
+                  ${s.label}
                 </button>
-                <span class="value">${this.noiseAlpha.toFixed(3)}</span>
-              </span>
-            </span>
-            <input
-              type="range"
-              min="0"
-              max=${NOISE_MAX}
-              step=${NOISE_STEP}
-              .value=${String(this.noiseAlpha)}
-              @input=${(e: Event) => {
-                const v = Number.parseFloat((e.target as HTMLInputElement).value);
-                this.#setNoiseAlpha(v);
-              }}
-            />
-          </label>
+              `,
+            )}
+          </div>
           <p class="hint">
-            Preset defaults sit at 0.025–0.040 — authentic but easy to miss. Slide right to
-            amplify the grain or down to 0 for none.
+            ~480 scanlines hold across every size — the pitch derives from container queries.
           </p>
         </section>
+
+        <section class="group">${quickSliders.map((s) => this.#renderSlider(s))}</section>
 
         <section class="group">
           <h2>Halation</h2>
@@ -517,6 +618,7 @@ export class PlaygroundApp extends LitElement {
               type="checkbox"
               .checked=${this.glowColorEnabled}
               @change=${(e: Event) => {
+                this.#userInteracted();
                 this.glowColorEnabled = (e.target as HTMLInputElement).checked;
               }}
             />
@@ -527,6 +629,7 @@ export class PlaygroundApp extends LitElement {
               type="color"
               .value=${this.glowColor}
               @input=${(e: Event) => {
+                this.#userInteracted();
                 this.glowColor = (e.target as HTMLInputElement).value;
               }}
             />
@@ -538,10 +641,159 @@ export class PlaygroundApp extends LitElement {
           <button type="button" class="primary" @click=${() => this.#copyExport()}>
             ${this.copyState === 'copied' ? 'copied!' : 'copy as HTML'}
           </button>
-          <button type="button" class="ghost" @click=${() => this.#resetOverrides()}>
+          <button
+            type="button"
+            class="ghost"
+            @click=${() => {
+              this.#userInteracted();
+              this.#resetOverrides();
+            }}
+          >
             reset overrides
           </button>
         </section>
+
+        <details
+          class="disclosure"
+          ?open=${this.advancedOpen}
+          @toggle=${(e: Event) => {
+            this.advancedOpen = (e.target as HTMLDetailsElement).open;
+            if (this.advancedOpen) this.#userInteracted();
+          }}
+        >
+          <summary>Advanced</summary>
+          <section class="group">
+            <h2>Attributes</h2>
+            <label class="row">
+              <input
+                type="checkbox"
+                .checked=${this.fullscreen}
+                @change=${(e: Event) => {
+                  this.#userInteracted();
+                  this.fullscreen = (e.target as HTMLInputElement).checked;
+                }}
+              />
+              <span>fullscreen</span>
+            </label>
+            <label class="row">
+              <input
+                type="checkbox"
+                .checked=${this.disabled}
+                @change=${(e: Event) => {
+                  this.#userInteracted();
+                  this.disabled = (e.target as HTMLInputElement).checked;
+                }}
+              />
+              <span>disabled</span>
+            </label>
+            <label class="row">
+              <input
+                type="checkbox"
+                .checked=${this.editing}
+                ?disabled=${this.fullscreen}
+                @change=${(e: Event) => {
+                  this.#userInteracted();
+                  this.editing = (e.target as HTMLInputElement).checked;
+                }}
+              />
+              <span>edit slot content</span>
+            </label>
+          </section>
+
+          <section class="group">
+            <h2>Layers</h2>
+            ${LAYERS.map(
+              (layer) => html`
+                <label class="row">
+                  <input
+                    type="checkbox"
+                    .checked=${!this.layersOff[layer.key]}
+                    @change=${() => this.#toggleLayer(layer.key)}
+                  />
+                  <span>${layer.label}</span>
+                </label>
+              `,
+            )}
+          </section>
+
+          <section class="group">
+            <h2>Tuning</h2>
+            ${advancedSliders.map((s) => this.#renderSlider(s))}
+          </section>
+
+          <section class="group">
+            <h2>Phosphor noise</h2>
+            <label class="slider">
+              <span class="slider-label">
+                <span>alpha</span>
+                <span class="value-cluster">
+                  <button
+                    type="button"
+                    class="reset-btn"
+                    title="reset to preset default"
+                    aria-label="reset noise alpha to preset default"
+                    ?hidden=${!this.noiseOverridden}
+                    @click=${(e: Event) => {
+                      e.preventDefault();
+                      this.#userInteracted();
+                      this.#resetNoise();
+                    }}
+                  >
+                    ↻
+                  </button>
+                  <span class="value">${this.noiseAlpha.toFixed(3)}</span>
+                </span>
+              </span>
+              <input
+                type="range"
+                min="0"
+                max=${NOISE_MAX}
+                step=${NOISE_STEP}
+                .value=${String(this.noiseAlpha)}
+                @input=${(e: Event) => {
+                  const v = Number.parseFloat((e.target as HTMLInputElement).value);
+                  this.#setNoiseAlpha(v);
+                }}
+              />
+            </label>
+          </section>
+        </details>
+
+        <details
+          class="disclosure"
+          ?open=${this.installOpen}
+          @toggle=${(e: Event) => {
+            this.installOpen = (e.target as HTMLDetailsElement).open;
+            if (this.installOpen) this.#userInteracted();
+          }}
+        >
+          <summary>Get started</summary>
+          <section class="group install">
+            ${[
+              'pnpm add @labcat/crt',
+              "import '@labcat/crt';",
+              "import '@labcat/crt/glow.css';",
+            ].map(
+              (line, i) => html`
+                <div class="install-line">
+                  <code>${line}</code>
+                  <button
+                    type="button"
+                    class="copy-btn"
+                    aria-label="copy ${line}"
+                    @click=${() => this.#copyLine(i, line)}
+                  >
+                    ${this.lineCopied === i ? '✓' : '⎘'}
+                  </button>
+                </div>
+              `,
+            )}
+            <p class="hint">
+              Tag bright elements with <code>class="crt-glow"</code> in your own markup to pick
+              up halation. The glow.css file binds the published CSS vars to that class.
+            </p>
+          </section>
+        </details>
 
         <footer class="foot">
           <a href="https://github.com/andymai/labcat-crt" target="_blank" rel="noopener">
@@ -550,8 +802,13 @@ export class PlaygroundApp extends LitElement {
         </footer>
       </aside>
 
-      <main class="stage">
+      <main class="stage" data-size=${this.stageSize}>
         <slot></slot>
+        ${
+          this.dragOver
+            ? html`<div class="drop-hint" aria-hidden="true">drop to load image</div>`
+            : ''
+        }
       </main>
     `;
   }
@@ -565,13 +822,14 @@ export class PlaygroundApp extends LitElement {
         'Berkeley Mono', ui-monospace, 'JetBrains Mono', SFMono-Regular, Menlo, Consolas, monospace;
       color: #d5d5d5;
       background: #0d0d0d;
+      --pg-bezel: #050505;
     }
 
     .panel {
       display: flex;
       flex-direction: column;
-      gap: 1.25rem;
-      padding: 1.25rem 1rem;
+      gap: 1.1rem;
+      padding: 1.1rem 1rem;
       border-right: 1px solid #1f1f1f;
       background: #0a0a0a;
       overflow-y: auto;
@@ -582,8 +840,8 @@ export class PlaygroundApp extends LitElement {
     .brand {
       display: flex;
       align-items: center;
-      gap: 0.6rem;
-      padding-bottom: 0.75rem;
+      gap: 0.55rem;
+      padding-bottom: 0.7rem;
       border-bottom: 1px solid #1f1f1f;
     }
     .brand .dot {
@@ -596,6 +854,13 @@ export class PlaygroundApp extends LitElement {
     .brand .title {
       font-size: 0.85rem;
       letter-spacing: 0.02em;
+    }
+    .brand .tag {
+      margin-left: auto;
+      font-size: 0.7rem;
+      opacity: 0.45;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
     }
 
     h2 {
@@ -619,7 +884,8 @@ export class PlaygroundApp extends LitElement {
       gap: 0.35rem;
     }
 
-    .preset {
+    .preset,
+    .chip {
       appearance: none;
       background: #141414;
       border: 1px solid #1f1f1f;
@@ -629,16 +895,54 @@ export class PlaygroundApp extends LitElement {
       font-size: 0.78rem;
       cursor: pointer;
       text-align: left;
-      transition: border-color 120ms ease, color 120ms ease;
+      transition: border-color 120ms ease, color 120ms ease, background 120ms ease;
     }
-    .preset:hover {
+    .preset:hover,
+    .chip:hover {
       color: #f0f0f0;
       border-color: #2c2c2c;
     }
-    .preset.on {
+    .preset.on,
+    .chip.on {
       color: #0a0a0a;
       background: #d5d5d5;
       border-color: #d5d5d5;
+    }
+
+    .stage-sizes {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.3rem;
+    }
+    .chip {
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+      font-size: 0.72rem;
+    }
+
+    .cycle-hint {
+      margin: 0.5rem 0 0;
+      font-size: 0.7rem;
+      opacity: 0.7;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .cycle-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #4cff8a;
+      animation: cycle-pulse 1.6s ease-in-out infinite;
+    }
+    @keyframes cycle-pulse {
+      0%, 100% { opacity: 0.35; }
+      50% { opacity: 1; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .cycle-dot {
+        animation: none;
+      }
     }
 
     .row {
@@ -697,11 +1001,16 @@ export class PlaygroundApp extends LitElement {
       width: 100%;
       accent-color: #d5d5d5;
     }
+
     .hint {
       margin: 0.35rem 0 0;
       font-size: 0.7rem;
       line-height: 1.5;
       opacity: 0.5;
+    }
+    .hint code {
+      font-family: inherit;
+      opacity: 0.85;
     }
 
     .color-row {
@@ -753,6 +1062,71 @@ export class PlaygroundApp extends LitElement {
       border-color: #2c2c2c;
     }
 
+    .disclosure {
+      border-top: 1px solid #1f1f1f;
+      padding-top: 0.8rem;
+    }
+    .disclosure > summary {
+      cursor: pointer;
+      list-style: none;
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      opacity: 0.7;
+      padding: 0.25rem 0;
+      user-select: none;
+    }
+    .disclosure > summary::-webkit-details-marker {
+      display: none;
+    }
+    .disclosure > summary::before {
+      content: '▸ ';
+      transition: transform 140ms ease;
+      display: inline-block;
+    }
+    .disclosure[open] > summary::before {
+      transform: rotate(90deg);
+    }
+    .disclosure[open] > summary {
+      opacity: 1;
+    }
+    .disclosure > section.group {
+      margin-top: 0.9rem;
+    }
+
+    .install .install-line {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: #141414;
+      border: 1px solid #1f1f1f;
+      padding: 0.5rem 0.55rem;
+      font-size: 0.75rem;
+    }
+    .install .install-line code {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: #d5d5d5;
+    }
+    .install .copy-btn {
+      appearance: none;
+      background: transparent;
+      border: 1px solid #1f1f1f;
+      color: #b8b8b8;
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.85rem;
+      line-height: 1;
+      padding: 0.2rem 0.4rem;
+      transition: color 120ms ease, border-color 120ms ease;
+    }
+    .install .copy-btn:hover {
+      color: #f0f0f0;
+      border-color: #2c2c2c;
+    }
+
     .foot {
       margin-top: auto;
       padding-top: 0.75rem;
@@ -769,18 +1143,96 @@ export class PlaygroundApp extends LitElement {
       text-decoration: underline;
     }
 
+    /* ──── Stage ──── */
     .stage {
       position: relative;
       min-height: 100vh;
-      overflow: auto;
+      box-sizing: border-box;
     }
-    ::slotted(crt-overlay) {
+
+    /* Free mode: overlay fills the stage at viewport scale (current behavior). */
+    .stage[data-size='free'] ::slotted(crt-overlay) {
       display: block;
       min-height: 100vh;
     }
+
+    /* Sized modes: stage is a centered, padded canvas with bezel color;
+       slotted overlay clips to fixed dimensions so the size-aware scaling
+       is visible. The padding var is consumed inside the overlay's own
+       CSS in index.astro — vw-based padding stops eating the box at mobile. */
+    .stage:not([data-size='free']) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.25rem;
+      background: var(--pg-bezel);
+      overflow: auto;
+    }
+    .stage:not([data-size='free']) ::slotted(crt-overlay) {
+      --pg-overlay-padding: 1.5rem;
+    }
+    .stage[data-size='mobile'] ::slotted(crt-overlay) {
+      display: block;
+      width: 375px;
+      height: 667px;
+      overflow: auto;
+      box-shadow: 0 0 0 1px #1f1f1f;
+    }
+    .stage[data-size='tablet'] ::slotted(crt-overlay) {
+      display: block;
+      width: 1024px;
+      height: 768px;
+      max-width: 100%;
+      max-height: calc(100vh - 3rem);
+      overflow: auto;
+      box-shadow: 0 0 0 1px #1f1f1f;
+    }
+    .stage[data-size='desktop'] ::slotted(crt-overlay) {
+      display: block;
+      width: 1440px;
+      height: 900px;
+      max-width: 100%;
+      max-height: calc(100vh - 3rem);
+      overflow: auto;
+      box-shadow: 0 0 0 1px #1f1f1f;
+    }
+    .stage[data-size='4k'] ::slotted(crt-overlay) {
+      display: block;
+      width: 2560px;
+      height: 1440px;
+      max-width: 100%;
+      max-height: calc(100vh - 3rem);
+      overflow: auto;
+      box-shadow: 0 0 0 1px #1f1f1f;
+    }
+    .stage[data-size='ultrawide'] ::slotted(crt-overlay) {
+      display: block;
+      width: min(1680px, 100%);
+      aspect-ratio: 21 / 9;
+      max-height: calc(100vh - 3rem);
+      overflow: auto;
+      box-shadow: 0 0 0 1px #1f1f1f;
+    }
+
     ::slotted(crt-overlay[contenteditable='true']) {
       outline: 1px dashed rgba(76, 255, 138, 0.35);
       outline-offset: -8px;
+    }
+
+    .drop-hint {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: rgba(76, 255, 138, 0.05);
+      border: 2px dashed rgba(76, 255, 138, 0.45);
+      color: #4cff8a;
+      z-index: 5;
     }
 
     @media (max-width: 720px) {
@@ -791,6 +1243,9 @@ export class PlaygroundApp extends LitElement {
         max-height: none;
         border-right: none;
         border-bottom: 1px solid #1f1f1f;
+      }
+      .stage:not([data-size='free']) {
+        padding: 0.5rem;
       }
     }
   `;

@@ -8,11 +8,9 @@ import { presetStyles } from './styles/presets.js';
 export type CrtPreset = 'pvm' | 'consumer' | 'amber' | 'green' | 'p4-white';
 
 /*
- * Module-private registry of mounted fullscreen instances. The first instance
- * to connect publishes CSS halation vars on document.documentElement so that
- * .crt-glow elements anywhere on the page inherit them; the last instance to
- * disconnect clears them. A Set, not a counter, so disconnects from instances
- * that never connected (defensive paranoia under HMR) don't underflow.
+ * Set, not a counter: disconnects from instances that never connected (HMR)
+ * must not underflow. First-in publishes halation vars on documentElement,
+ * last-out clears them.
  */
 const fullscreenInstances = new Set<CrtOverlay>();
 
@@ -54,10 +52,32 @@ function clearDocumentElement(): void {
  * your app and tag elements with `class="crt-glow"`. The component publishes
  * the halation CSS vars; the imported stylesheet binds them to that class.
  *
+ * Realism scales with the container: every pitch derives from container query
+ * units (cqb/cqi/cqmin) so a 200×150 widget and a 4K fullscreen both render
+ * a coherent CRT rather than a fixed-pixel screen filter. The per-preset
+ * archetype is set by `--crt-lines` (vertical scanline count) and
+ * `--crt-triads` (horizontal RGB triad count); consumers override either to
+ * retune any preset without touching the gradients.
+ *
  * @element crt-overlay
  * @slot - Content to overlay. Ignored in `fullscreen` mode.
  * @csspart overlay - The painted overlay layer (scanlines, grille, vignette).
  * @cssprop [--crt-z=9999] - z-index for fullscreen mode.
+ * @cssprop [--crt-lines=480] - Target vertical scanline count. Per-preset
+ *   default (480 NTSC, 400 VT220, 350 IBM 5151, 364 Apple Lisa).
+ * @cssprop [--crt-triads=480] - Target horizontal RGB triad count.
+ *   Per-preset default (480 PVM, 320 consumer NTSC).
+ * @cssprop [--crt-aberration-x] - Chromatic aberration horizontal offset
+ *   (em or px). 0 = no aberration. Override to retune any preset's
+ *   convergence strength without rebuilding the shadow.
+ * @cssprop [--crt-pitch] - Derived vertical scanline pitch (read-only;
+ *   override `--crt-lines` instead).
+ * @cssprop [--crt-grille-pitch] - Derived horizontal RGB triad pitch
+ *   (read-only; override `--crt-triads` instead).
+ * @cssprop [--crt-noise-size] - Derived phosphor-noise tile size (read-only).
+ * @cssprop [--crt-blend-mode=normal] - mix-blend-mode for the painted
+ *   overlay layer. Default `normal` plays cleanly with backdrop-filter.
+ *   Try `overlay` or `soft-light` for a stronger contrast-pumped look.
  */
 @customElement('crt-overlay')
 export class CrtOverlay extends LitElement {
@@ -114,13 +134,11 @@ export class CrtOverlay extends LitElement {
 
   #registerFullscreen(): void {
     fullscreenInstances.add(this);
-    // Re-read after update settles so preset-specific vars resolve correctly.
-    // requestAnimationFrame is enough; updateComplete would also work but is
-    // a microtask race against attributeChangedCallback callers.
+    // rAF (not updateComplete) lets the preset's var cascade settle without
+    // racing attributeChangedCallback microtasks.
     requestAnimationFrame(() => {
       if (!fullscreenInstances.has(this)) return;
-      const vars = readHalationVars(this);
-      publishToDocumentElement(vars);
+      publishToDocumentElement(readHalationVars(this));
     });
   }
 

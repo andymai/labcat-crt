@@ -14,6 +14,17 @@ function hostVar(el: HTMLElement, name: string): string {
   return getComputedStyle(el).getPropertyValue(name).trim();
 }
 
+/*
+ * Gradient-bearing vars (--crt-scanlines, --crt-grille, …) live on .overlay
+ * because a container cannot query its own cqb/cqi units — they have to
+ * resolve in a descendant of :host.
+ */
+function overlayVar(el: CrtOverlay, name: string): string {
+  const overlay = el.shadowRoot?.querySelector('.overlay');
+  if (!overlay) return '';
+  return getComputedStyle(overlay).getPropertyValue(name).trim();
+}
+
 describe('preset CSS variables', () => {
   afterEach(() => {
     fixtureCleanup();
@@ -30,12 +41,12 @@ describe('preset CSS variables', () => {
 
       it('resolves --crt-scanlines to a gradient', async () => {
         const el = await mount(preset);
-        expect(hostVar(el, '--crt-scanlines')).toContain('linear-gradient');
+        expect(overlayVar(el, '--crt-scanlines')).toContain('linear-gradient');
       });
 
       it('resolves --crt-vignette to a gradient', async () => {
         const el = await mount(preset);
-        expect(hostVar(el, '--crt-vignette')).toContain('gradient');
+        expect(overlayVar(el, '--crt-vignette')).toContain('gradient');
       });
     });
   }
@@ -57,15 +68,49 @@ describe('preset CSS variables', () => {
     const amber = await mount('amber');
     const green = await mount('green');
     const p4 = await mount('p4-white');
-    expect(hostVar(amber, '--crt-grille')).toBe('none');
-    expect(hostVar(green, '--crt-grille')).toBe('none');
-    expect(hostVar(p4, '--crt-grille')).toBe('none');
+    expect(overlayVar(amber, '--crt-grille')).toBe('none');
+    expect(overlayVar(green, '--crt-grille')).toBe('none');
+    expect(overlayVar(p4, '--crt-grille')).toBe('none');
   });
 
   it('color presets enable the aperture grille', async () => {
     const pvm = await mount('pvm');
     const cons = await mount('consumer');
-    expect(hostVar(pvm, '--crt-grille')).toContain('linear-gradient');
-    expect(hostVar(cons, '--crt-grille')).toContain('linear-gradient');
+    expect(overlayVar(pvm, '--crt-grille')).toContain('linear-gradient');
+    expect(overlayVar(cons, '--crt-grille')).toContain('linear-gradient');
+  });
+
+  it('consumer grille layers an aperture stripe with a horizontal interruption', async () => {
+    const cons = await mount('consumer');
+    const grille = overlayVar(cons, '--crt-grille');
+    expect(grille.match(/repeating-linear-gradient/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
+  });
+
+  const expectedLines: Record<CrtPreset, string> = {
+    pvm: '480',
+    consumer: '480',
+    amber: '400',
+    green: '350',
+    'p4-white': '364',
+  };
+  const expectedTriads: Record<CrtPreset, string> = {
+    pvm: '480',
+    consumer: '320',
+    amber: '480',
+    green: '480',
+    'p4-white': '480',
+  };
+  for (const preset of presets) {
+    it(`${preset} sets historical --crt-lines and --crt-triads constants`, async () => {
+      const el = await mount(preset);
+      expect(hostVar(el, '--crt-lines')).toBe(expectedLines[preset]);
+      expect(hostVar(el, '--crt-triads')).toBe(expectedTriads[preset]);
+    });
+  }
+
+  it('--crt-aberration-x is a public override hook', async () => {
+    const el = await mount('pvm');
+    el.style.setProperty('--crt-aberration-x', '1.5px');
+    expect(hostVar(el, '--crt-aberration-x')).toBe('1.5px');
   });
 });
