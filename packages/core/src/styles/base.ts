@@ -46,9 +46,13 @@ export const baseStyles = css`
     z-index: 1;
 
     /* Declared on .overlay (not :host) because a container cannot query
-       itself; cqb/cqi must resolve in a descendant. */
-    --crt-pitch: clamp(1.5px, 100cqb / var(--crt-lines), 6px);
-    --crt-grille-pitch: clamp(1.5px, 100cqi / var(--crt-triads), 6px);
+       itself; cqb/cqi must resolve in a descendant.
+       Pitch floor is 3px (not 1px or less) because Safari's gradient
+       rasterizer collapses sub-pixel stops into solid bands — our
+       gradients carry 7 stops per pitch, and the spacing has to stay
+       above one device pixel for Safari to render scanlines as scanlines. */
+    --crt-pitch: clamp(3px, 100cqb / var(--crt-lines), 6px);
+    --crt-grille-pitch: clamp(3px, 100cqi / var(--crt-triads), 6px);
     --crt-noise-size: clamp(120px, 18cqmin, 360px);
 
     background-image:
