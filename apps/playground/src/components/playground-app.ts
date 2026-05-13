@@ -832,11 +832,6 @@ export class PlaygroundApp extends LitElement {
           </section>
         </details>
 
-        <footer class="foot">
-          <a href="https://github.com/andymai/labcat-crt" target="_blank" rel="noopener">
-            github.com/andymai/labcat-crt
-          </a>
-        </footer>
       </aside>
 
       <main class="stage">
@@ -1168,22 +1163,6 @@ export class PlaygroundApp extends LitElement {
     .install .copy-btn:hover {
       color: #f0f0f0;
       border-color: #2c2c2c;
-    }
-
-    .foot {
-      margin-top: auto;
-      padding-top: 0.75rem;
-      border-top: 1px solid #1f1f1f;
-      font-size: 0.72rem;
-      opacity: 0.5;
-    }
-    .foot a {
-      color: inherit;
-      text-decoration: none;
-    }
-    .foot a:hover {
-      opacity: 1;
-      text-decoration: underline;
     }
 
     /* ──── Stage ──── */
