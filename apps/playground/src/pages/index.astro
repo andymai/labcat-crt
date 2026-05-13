@@ -189,25 +189,16 @@ import '@labcat/crt/glow.css';
           <div class="drop-zone"></div>
         </article>
 
-        <!-- cool: Go standard library cmp.Or, BSD-3-Clause. © The Go Authors. -->
+        <!-- cool: Go standard library bytes.Equal, BSD-3-Clause. © The Go Authors. -->
         <article data-preset="cool">
-          <p class="citation">The Go Authors · src/cmp/cmp.go · BSD-3-Clause</p>
-          <h1 class="crt-glow">cmp.Or</h1>
+          <p class="citation">The Go Authors · src/bytes/bytes.go · BSD-3-Clause</p>
+          <h1 class="crt-glow">bytes.Equal</h1>
           <p>
-            Returns the first of its arguments that is not equal to the zero value. If no
-            argument is non-zero, it returns the zero value.
+            Reports whether a and b have the same length and contain the same bytes. A nil
+            argument is equivalent to an empty slice.
           </p>
-          <pre class="code"><span class="crt-glow">// Or returns the first of its arguments that is not equal
-// to the zero value. If no argument is non-zero, it returns
-// the zero value.
-func Or[T comparable](vals ...T) T &lbrace;
-    var zero T
-    for _, val := range vals &lbrace;
-        if val != zero &lbrace;
-            return val
-        &rbrace;
-    &rbrace;
-    return zero
+          <pre class="code"><span class="crt-glow">func Equal(a, b []byte) bool &lbrace;
+    return string(a) == string(b)
 &rbrace;</span></pre>
           <div class="drop-zone"></div>
         </article>
