@@ -1,6 +1,7 @@
 import type { CrtOverlay, CrtPreset } from '@labcat/crt';
 import { LitElement, css, html } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
+import { SAMPLES } from './samples.ts';
 
 const PRESETS: readonly CrtPreset[] = ['calm', 'warm', 'cool'] as const;
 
@@ -689,6 +690,27 @@ export class PlaygroundApp extends LitElement {
           </label>
         </section>
 
+        <section class="group">
+          <h2>Samples</h2>
+          <div class="presets">
+            ${SAMPLES.map(
+              (s) => html`
+                <button
+                  type="button"
+                  class="preset"
+                  @click=${() => {
+                    this.#userInteracted();
+                    this.#setUserImage(s.url);
+                  }}
+                >
+                  ${s.label}
+                </button>
+              `,
+            )}
+          </div>
+          <p class="hint">Inline SVG vignettes. Drop your own image to replace.</p>
+        </section>
+
         <section class="group actions">
           <button type="button" class="primary" @click=${() => this.#copyExport()}>
             ${this.copyState === 'copied' ? 'copied!' : 'copy as HTML'}
@@ -1024,6 +1046,14 @@ export class PlaygroundApp extends LitElement {
     .hint code {
       font-family: inherit;
       opacity: 0.85;
+    }
+    .hint a {
+      color: inherit;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .hint a:hover {
+      opacity: 1;
     }
 
     .color-row {
