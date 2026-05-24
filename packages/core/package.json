@@ -4,8 +4,15 @@
   "description": "Customizable CRT visualization web component. PVM, NTSC consumer, amber, and green monochrome presets.",
   "license": "MIT",
   "type": "module",
-  "sideEffects": ["./dist/index.js", "*.css"],
-  "files": ["dist", "custom-elements.json", "README.md"],
+  "sideEffects": [
+    "./dist/index.js",
+    "*.css"
+  ],
+  "files": [
+    "dist",
+    "custom-elements.json",
+    "README.md"
+  ],
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -31,18 +38,19 @@
     "clean": "rm -rf dist custom-elements.json *.tsbuildinfo"
   },
   "dependencies": {
-    "lit": "^3.2.1"
+    "lit": "^3.3.3"
   },
   "devDependencies": {
-    "@custom-elements-manifest/analyzer": "^0.10.4",
+    "@custom-elements-manifest/analyzer": "^0.11.0",
     "@open-wc/testing-helpers": "^3.0.1",
-    "@size-limit/preset-small-lib": "^11.1.6",
-    "@vitest/browser": "^3.0.0",
-    "playwright": "1.55.1",
-    "size-limit": "^11.1.6",
-    "typescript": "^5.7.3",
-    "vite": "^6.0.7",
-    "vitest": "^3.0.0"
+    "@size-limit/preset-small-lib": "^12.1.0",
+    "@vitest/browser": "^4.1.5",
+    "@vitest/browser-playwright": "^4.1.6",
+    "playwright": "1.60.0",
+    "size-limit": "^12.1.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.11",
+    "vitest": "^4.1.5"
   },
   "size-limit": [
     {
@@ -56,7 +64,11 @@
       "path": "dist/index.js",
       "limit": "5 kB",
       "import": "*",
-      "ignore": ["lit", "lit/decorators.js", "lit/directives/class-map.js"]
+      "ignore": [
+        "lit",
+        "lit/decorators.js",
+        "lit/directives/class-map.js"
+      ]
     }
   ],
   "publishConfig": {

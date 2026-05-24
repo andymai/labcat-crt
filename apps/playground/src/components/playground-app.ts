@@ -1,5 +1,5 @@
 import type { CrtOverlay, CrtPreset } from '@labcat/crt';
-import { LitElement, css, html } from 'lit';
+import { css, html, LitElement } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
 
 const PRESETS: readonly CrtPreset[] = ['bvm', 'ntsc', 'lisa', 'vt220', 'ibm-5151'] as const;

@@ -1,19 +1,20 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.4.15/schema.json",
   "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
   "files": {
     "ignoreUnknown": true,
-    "ignore": [
-      "**/dist/**",
-      "**/.turbo/**",
-      "**/node_modules/**",
-      "**/.pnpm-store/**",
-      "**/custom-elements.json",
-      "**/.astro/**",
-      "**/__snapshots__/**",
-      "**/*-snapshots/**",
-      "**/playwright-report/**",
-      "**/test-results/**"
+    "includes": [
+      "**",
+      "!**/dist",
+      "!**/.turbo",
+      "!**/node_modules",
+      "!**/.pnpm-store",
+      "!**/custom-elements.json",
+      "!**/.astro",
+      "!**/__snapshots__",
+      "!**/*-snapshots",
+      "!**/playwright-report",
+      "!**/test-results"
     ]
   },
   "formatter": {

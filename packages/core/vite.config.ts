@@ -1,6 +1,6 @@
 import { copyFileSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { type Plugin, defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 
 /*
  * Copy hand-authored CSS that ships with the package but isn't part of the

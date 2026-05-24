@@ -175,17 +175,17 @@
       "exports": [
         {
           "kind": "js",
-          "name": "CrtOverlay",
+          "name": "CrtPreset",
           "declaration": {
-            "name": "CrtOverlay",
+            "name": "CrtPreset",
             "module": "./crt-overlay.js"
           }
         },
         {
           "kind": "js",
-          "name": "CrtPreset",
+          "name": "CrtOverlay",
           "declaration": {
-            "name": "CrtPreset",
+            "name": "CrtOverlay",
             "module": "./crt-overlay.js"
           }
         }
