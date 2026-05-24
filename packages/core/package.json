@@ -4,8 +4,15 @@
   "description": "Customizable CRT visualization web component. PVM, NTSC consumer, amber, and green monochrome presets.",
   "license": "MIT",
   "type": "module",
-  "sideEffects": ["./dist/index.js", "*.css"],
-  "files": ["dist", "custom-elements.json", "README.md"],
+  "sideEffects": [
+    "./dist/index.js",
+    "*.css"
+  ],
+  "files": [
+    "dist",
+    "custom-elements.json",
+    "README.md"
+  ],
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -56,7 +63,11 @@
       "path": "dist/index.js",
       "limit": "5 kB",
       "import": "*",
-      "ignore": ["lit", "lit/decorators.js", "lit/directives/class-map.js"]
+      "ignore": [
+        "lit",
+        "lit/decorators.js",
+        "lit/directives/class-map.js"
+      ]
     }
   ],
   "publishConfig": {
