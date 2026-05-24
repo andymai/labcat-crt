@@ -2,6 +2,17 @@ packages:
   - "packages/*"
   - "apps/*"
 
+# Supply-chain hardening — see SECURITY.md for rationale.
+# Cooldown unit is minutes; 10080 = 7 days.
+minimumReleaseAge: 10080
+
+# Blocks Shai-Hulud-class worms that spread via npm lifecycle scripts.
+# Packages that need to build are listed in allowBuilds.
+ignoreScripts: true
+
+allowBuilds:
+  esbuild: true
+
 # Force every yaml@<2.8.3 (e.g. via yaml-language-server) onto the patched
 # release. Stack-overflow advisory GHSA-48c2-rrv3-qjmp; the dev-tool chain
 # never sees untrusted YAML so this is purely to close the alert.
