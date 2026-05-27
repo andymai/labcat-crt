@@ -30,7 +30,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.4.15",
     "husky": "^9.1.7",
-    "lint-staged": "^17.0.4",
+    "lint-staged": "^17.0.5",
     "size-limit": "^12.1.0",
     "turbo": "^2.9.14",
     "typescript": "^6.0.3"
