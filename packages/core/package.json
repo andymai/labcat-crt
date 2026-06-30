@@ -44,13 +44,13 @@
     "@custom-elements-manifest/analyzer": "^0.11.0",
     "@open-wc/testing-helpers": "^3.0.1",
     "@size-limit/preset-small-lib": "^12.1.0",
-    "@vitest/browser": "^4.1.8",
-    "@vitest/browser-playwright": "^4.1.8",
-    "playwright": "1.60.0",
+    "@vitest/browser": "^4.1.9",
+    "@vitest/browser-playwright": "^4.1.9",
+    "playwright": "1.61.1",
     "size-limit": "^12.1.0",
     "typescript": "^6.0.3",
-    "vite": "^8.0.16",
-    "vitest": "^4.1.8"
+    "vite": "^8.1.0",
+    "vitest": "^4.1.9"
   },
   "size-limit": [
     {
