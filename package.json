@@ -28,11 +28,11 @@
     ]
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.3",
+    "@biomejs/biome": "^2.5.5",
     "husky": "^9.1.7",
-    "lint-staged": "^17.0.8",
+    "lint-staged": "^17.2.0",
     "size-limit": "^12.1.0",
-    "turbo": "^2.10.5",
+    "turbo": "^2.10.7",
     "typescript": "^6.0.3"
   }
 }
