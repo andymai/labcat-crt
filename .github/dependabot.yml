@@ -10,6 +10,13 @@ updates:
     groups:
       npm:
         patterns: ['*']
+        update-types: [minor, patch]
+    ignore:
+      # @astrojs/language-server crashes under TS 7 ("Cannot read properties of
+      # undefined (reading 'fileExists')" in AstroCheck.getTsconfig), failing
+      # `astro check`. Drop once the language server supports TS 7.
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
     open-pull-requests-limit: 3
 
   - package-ecosystem: github-actions
@@ -21,4 +28,5 @@ updates:
     groups:
       actions:
         patterns: ['*']
+        update-types: [minor, patch]
     open-pull-requests-limit: 3
