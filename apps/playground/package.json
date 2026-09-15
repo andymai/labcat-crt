@@ -12,12 +12,12 @@
   },
   "dependencies": {
     "@labcat/crt": "workspace:^",
-    "astro": "^7.2.10",
+    "astro": "^7.3.2",
     "lit": "^3.3.3"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
-    "@types/node": "^26.4.1",
+    "@types/node": "^26.5.0",
     "typescript": "^6.0.3"
   }
 }
