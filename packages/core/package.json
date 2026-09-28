@@ -45,7 +45,7 @@
     "@open-wc/testing-helpers": "^3.0.1",
     "@size-limit/preset-small-lib": "^13.1.1",
     "@vitest/browser": "^4.1.11",
-    "@vitest/browser-playwright": "^4.1.11",
+    "@vitest/browser-playwright": "^5.0.0",
     "playwright": "1.63.0",
     "size-limit": "^13.1.1",
     "typescript": "^6.0.3",
