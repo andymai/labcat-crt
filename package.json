@@ -7,7 +7,7 @@
   "type": "module",
   "packageManager": "pnpm@11.2.2",
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=22.19.0"
   },
   "scripts": {
     "prepare": "husky",
@@ -31,7 +31,7 @@
     "@biomejs/biome": "^2.5.14",
     "husky": "^9.1.7",
     "lint-staged": "^17.5.1",
-    "size-limit": "^13.1.1",
+    "size-limit": "^14.0.0",
     "turbo": "^2.11.3",
     "typescript": "^6.0.3"
   }
