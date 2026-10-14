@@ -1,0 +1,14 @@
+# OSV-Scanner suppressions, auto-discovered next to pnpm-lock.yaml. Each entry
+# carries a reason and a review date.
+
+# braces 3.0.3 is the latest release and still affected; no fixed version
+# exists. It arrives through @custom-elements-manifest/analyzer 0.11.0 (latest),
+# which pins chokidar 3.5.2 and globby 11.0.4 exactly. The analyzer runs only
+# as the dev-time `cem` script in packages/core, with the hardcoded glob
+# "src/**/*.ts", so no untrusted pattern reaches braces.
+#
+# Delete when a braces release fixes GHSA-vfj7-8cjw-p6xm.
+[[IgnoredVulns]]
+id = "GHSA-vfj7-8cjw-p6xm"
+ignoreUntil = 2027-01-15
+reason = "no fixed braces release; dev-only via the cem analyzer, which expands only the hardcoded src/**/*.ts glob"
