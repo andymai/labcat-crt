@@ -1,0 +1,21 @@
+.github/workflows/ci.yml
+  s_4ecf15858ba803::t_62ac03e2a9742a 24
+.github/workflows/pages.yml
+  s_4ecf15858ba803::t_02fc86f8330b0f 35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e7b229219a1d6d33988285e650fd4ab30483dadc",
+  "prompts": {},
+  "sessions": {
+    "s_4ecf15858ba803": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e7d83c32-0b6c-4c63-8bf0-06b44f67c75f",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Andy Aragon <hi@andymai.com>"
+    }
+  }
+}
