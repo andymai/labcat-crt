@@ -1,0 +1,19 @@
+biome.json
+  s_4ecf15858ba803::t_12762ae73f6acb 2,29,48-53
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c708ade898a6bc6cc8c0e5d5e0f3044435f0fb56",
+  "prompts": {},
+  "sessions": {
+    "s_4ecf15858ba803": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e7d83c32-0b6c-4c63-8bf0-06b44f67c75f",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Andy Aragon <hi@andymai.com>"
+    }
+  }
+}
