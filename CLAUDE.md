@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repo shape
 
-pnpm + Turbo monorepo. Node ≥ 22.12, pnpm 10.33.0 (pinned via `packageManager`). Two workspaces:
+pnpm + Turbo monorepo. Node ≥ 22.23.4, pnpm 10.33.0 (pinned via `packageManager`). Two workspaces:
 
 - `packages/core` — `@labcat/crt`, the publishable Lit web component. Vite library build → ESM only, Lit external. Vitest in real Chromium (Playwright provider, `browser.enabled: true`) — there is no JSDOM path. The `playwright` dep here is solely to launch the vitest browser; it is not used for visual snapshots.
 - `apps/playground` — `@labcat/crt-playground`, an Astro site with a single interactive page (`<playground-app>` Lit component) deployed to GitHub Pages at `https://andymai.github.io/labcat-crt/`. Astro `base: '/labcat-crt'` is critical — without it, asset URLs 404 under the subpath.
@@ -93,7 +93,7 @@ Biome 1.9.4 handles both. Single quotes, semicolons, trailing commas, 100-col, 2
 
 ## CI
 
-`.github/workflows/ci.yml` runs on push to `main` and on PRs: install → lint → typecheck → build → core tests → size budget. `pages.yml` builds `apps/playground` and deploys it to GitHub Pages on push to `main` (or `workflow_dispatch`); uses OIDC-based `actions/deploy-pages` (`permissions: pages: write`, `id-token: write`) — no `gh-pages` branch involved. Both workflows pin pnpm 10.33.0 + Node 22.12; keep these aligned with the root `package.json`'s `packageManager` and `engines` fields.
+`.github/workflows/ci.yml` runs on push to `main` and on PRs: install → lint → typecheck → build → core tests → size budget. `pages.yml` builds `apps/playground` and deploys it to GitHub Pages on push to `main` (or `workflow_dispatch`); uses OIDC-based `actions/deploy-pages` (`permissions: pages: write`, `id-token: write`) — no `gh-pages` branch involved. Both workflows pin pnpm 10.33.0 + Node 22.23.4; keep these aligned with the root `package.json`'s `packageManager` and `engines` fields.
 
 Visual snapshot regression testing was removed deliberately — at this stage of the project, snapshot drift would mostly flag preset tuning rather than real regressions, and the Playwright Docker image baseline was heavy CI for the value. The playground is the visual sanity-check surface. To reintroduce: restore an Astro snapshot host workspace, baselines under it, and a workflow using `mcr.microsoft.com/playwright:v<n>-jammy` with the version pinned to whatever vitest browser ships with so binaries stay in sync.
 
