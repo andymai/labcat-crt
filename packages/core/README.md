@@ -74,15 +74,19 @@ before paint:
 
 ### Presets
 
-| Preset          | Archetype                     | Look                                   | Animation      |
+| Preset          | Archetype                     | Look                                   | Scanline drift |
 | --------------- | ----------------------------- | -------------------------------------- | -------------- |
-| `bvm` (default) | Sony broadcast monitor        | cool-white reference, sharp scanlines  | none           |
-| `ntsc`          | home NTSC receiver            | warm cast, deeper vignette, more grain | none           |
-| `lisa`          | Apple Lisa P4 white phosphor  | neutral warm-white reading surface     | none           |
-| `vt220`         | DEC VT220 amber terminal      | wider bloom                            | scanline drift |
-| `ibm-5151`      | IBM 5151 green phosphor       | tighter scanlines                      | scanline drift |
+| `bvm` (default) | Sony broadcast monitor        | cool-white reference, sharp scanlines  | no             |
+| `ntsc`          | home NTSC receiver            | warm cast, deeper vignette, more grain | no             |
+| `lisa`          | Apple Lisa P4 white phosphor  | neutral warm-white reading surface     | no             |
+| `vt220`         | DEC VT220 amber terminal      | wider bloom                            | yes            |
+| `ibm-5151`      | IBM 5151 green phosphor       | tighter scanlines                      | yes            |
 
-No preset draws an aperture grille or chromatic aberration.
+Every preset also breathes: an 8-second pulse in brightness and
+saturation. `--crt-breathing-amplitude` sets its strength (default
+`0.025`), and `0` turns it off. With `prefers-reduced-motion: reduce`, the
+overlay has no motion at all. No preset draws an aperture grille or
+chromatic aberration.
 
 ### CSS properties
 
