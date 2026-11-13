@@ -41,7 +41,7 @@ Pre-commit (Husky): `lint-staged` (biome --write on changed files) + full `pnpm 
 
 `<crt-overlay>` (`packages/core/src/crt-overlay.ts`) is the entire public surface. Three reflected attributes:
 
-- `preset` — switches a block of CSS variable assignments in `styles/presets.ts`. Five archetypes (`pvm`, `consumer`, `amber`, `green`, `p4-white`). Adding a preset means: (a) extending the `CrtPreset` union in `crt-overlay.ts`, (b) adding a `:host([preset='...'])` block in `presets.ts`. The playground's preset picker reads `PRESETS` in `apps/playground/src/components/playground-app.ts` — keep that union list in sync. The CSS-var system is the extension surface — never add per-effect boolean attributes (`enable-grille`, `enable-noise`, …); consumers already disable individual layers with `style="--crt-grille: none"`.
+- `preset` — switches a block of CSS variable assignments in `styles/presets.ts`. Five archetypes (`bvm`, `ntsc`, `lisa`, `vt220`, `ibm-5151`). Adding a preset means: (a) extending the `CrtPreset` union in `crt-overlay.ts`, (b) adding a `:host([preset='...'])` block in `presets.ts`. The playground's preset picker reads `PRESETS` in `apps/playground/src/components/playground-app.ts` — keep that union list in sync. The CSS-var system is the extension surface — never add per-effect boolean attributes (`enable-grille`, `enable-noise`, …); consumers already disable individual layers with `style="--crt-grille: none"`.
 - `fullscreen` — `position: fixed; inset: 0` covering the viewport, slot hidden. Triggers the halation refcount described below.
 - `disabled` — pauses animations without unmounting. Halation vars unpublish.
 

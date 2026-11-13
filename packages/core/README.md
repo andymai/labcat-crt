@@ -1,9 +1,9 @@
 # @labcat/crt
 
-A `<crt-overlay>` web component. Renders phosphor scanlines, aperture
-grille, vignette, and halation onto its slotted content or onto the full
-viewport. Five presets: Sony PVM, NTSC consumer TV, VT220 amber, IBM 5151
-green, P4 white-phosphor PC monitor.
+A `<crt-overlay>` web component. It renders scanlines, vignette, grain,
+and halation over its slotted content or over the full viewport. Five
+presets: a Sony broadcast monitor, a home NTSC TV, the Apple Lisa white
+phosphor, the DEC VT220 amber terminal, and the IBM 5151 green monitor.
 
 - **2.4 KB gzip** when Lit is already on the page, **7.95 KB** standalone.
 - Framework-agnostic (Lit web component). Drop into Astro, vanilla HTML,
@@ -15,12 +15,12 @@ green, P4 white-phosphor PC monitor.
 
 ## Install
 
-```
-pnpm add @labcat/crt
-```
+Install it from a local clone next to your project, with this
+dependency in your `package.json`:
 
-(Not yet published. Until then, link locally with
-`"@labcat/crt": "link:../labcat-crt/packages/core"`.)
+```
+"@labcat/crt": "link:../labcat-crt/packages/core"
+```
 
 ## Quick start
 
@@ -32,7 +32,7 @@ pnpm add @labcat/crt
 </script>
 <link rel="stylesheet" href="@labcat/crt/glow.css" />
 
-<crt-overlay preset="pvm">
+<crt-overlay preset="bvm">
   <h1 class="crt-glow">labcat.dev</h1>
   <p>regular paragraphs get the structural overlay only.</p>
   <code class="crt-glow">npm install @labcat/crt</code>
@@ -42,7 +42,7 @@ pnpm add @labcat/crt
 ### Fullscreen
 
 ```html
-<crt-overlay fullscreen preset="pvm"></crt-overlay>
+<crt-overlay fullscreen preset="bvm"></crt-overlay>
 ```
 
 The element is empty in fullscreen mode. It paints over the viewport.
@@ -55,7 +55,7 @@ component publishes the halation CSS vars to `document.documentElement`.
 
 | Attribute    | Type    | Default | Description                                                                                  |
 | ------------ | ------- | ------- | -------------------------------------------------------------------------------------------- |
-| `preset`     | string  | `pvm`   | One of `pvm`, `consumer`, `amber`, `green`, `p4-white`.                                      |
+| `preset`     | string  | `bvm`   | One of `bvm`, `ntsc`, `lisa`, `vt220`, `ibm-5151`.                                           |
 | `fullscreen` | boolean | `false` | When set, the overlay covers the viewport. Slot is hidden.                                   |
 | `disabled`   | boolean | `false` | Turns the effect off without unmounting. Animations pause cleanly so re-enabling is instant. |
 
@@ -74,13 +74,15 @@ before paint:
 
 ### Presets
 
-| Preset     | Archetype                          | Animations             | Aberration | Grille          |
-| ---------- | ---------------------------------- | ---------------------- | ---------- | --------------- |
-| `pvm`      | Sony PVM/BVM broadcast monitor     | none                   | none       | RGB aperture    |
-| `consumer` | Generic NTSC consumer TV           | scanline drift, 60Hz shimmer | sub-pixel  | RGB shadow-mask |
-| `amber`    | DEC VT220 amber monochrome terminal | scanline drift        | none       | none            |
-| `green`    | IBM 5151 P31 green monochrome       | scanline drift        | none       | none            |
-| `p4-white` | Early-80s mono PC monitor (Apple Lisa, IBM PC mono adapter, Tandy CM-1) | scanline drift | none | none |
+| Preset          | Archetype                     | Look                                   | Animation      |
+| --------------- | ----------------------------- | -------------------------------------- | -------------- |
+| `bvm` (default) | Sony broadcast monitor        | cool-white reference, sharp scanlines  | none           |
+| `ntsc`          | home NTSC receiver            | warm cast, deeper vignette, more grain | none           |
+| `lisa`          | Apple Lisa P4 white phosphor  | neutral warm-white reading surface     | none           |
+| `vt220`         | DEC VT220 amber terminal      | wider bloom                            | scanline drift |
+| `ibm-5151`      | IBM 5151 green phosphor       | tighter scanlines                      | scanline drift |
+
+No preset draws an aperture grille or chromatic aberration.
 
 ### CSS properties
 
@@ -88,13 +90,13 @@ Every visual layer is driven by a CSS variable. Override at the host to
 tweak any preset:
 
 ```html
-<crt-overlay preset="pvm" style="--crt-scanline-alpha: 0.3"></crt-overlay>
+<crt-overlay preset="bvm" style="--crt-scanline-strength: 0.3"></crt-overlay>
 ```
 
-Or disable an individual layer entirely:
+Or turn a layer off, with a strength of 0:
 
 ```html
-<crt-overlay preset="pvm" style="--crt-grille: none"></crt-overlay>
+<crt-overlay preset="bvm" style="--crt-vignette-strength: 0"></crt-overlay>
 ```
 
 | Variable                  | Purpose                                                |
@@ -165,13 +167,13 @@ Things we deliberately don't ship, and why:
   most browsers. A canvas/WebGL backend is the only correct approach but
   would dwarf the rest of the library. Reserved for v2.
 - **Roll bar, sweep line, glitch shake.** All read as "broken signal"
-  rather than "CRT character." Pro monitors didn't do this; consumer
-  presets land closer to nostalgic TV without going full malfunction.
+  rather than "CRT character." Pro monitors did not do this. The `ntsc`
+  preset comes closer to a nostalgic TV, but stops short of a fault.
 - **Phosphor afterglow trails.** A real artifact, but pulling it off
   without breaking subpixel readability requires a separate compositor
   pass (filter: blur on a clone, or a shader). Reserved for v2.
 - **Per-effect enable toggles.** The CSS-var system already lets a
-  consumer disable any individual layer (`style="--crt-grille: none"`).
+  consumer turn off a layer (`style="--crt-vignette-strength: 0"`).
   Adding parallel `enable-grille` attributes would double the API
   surface for no new capability.
 

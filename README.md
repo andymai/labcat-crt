@@ -5,7 +5,7 @@
 [![CI](https://github.com/andymai/labcat-crt/actions/workflows/ci.yml/badge.svg)](https://github.com/andymai/labcat-crt/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/github/license/andymai/labcat-crt)](./LICENSE)
 
-A Lit web component that puts a CRT screen effect over any element or the full page: phosphor grille, scanlines, vignette, and halation. It uses only CSS, with no canvas or WebGL.
+A Lit web component that puts a CRT screen effect over any element or the full page: scanlines, vignette, grain, and halation. It uses only CSS, with no canvas or WebGL.
 
 [Playground](https://andymai.github.io/labcat-crt/) · [Core package](./packages/core) · [Playground source](./apps/playground)
 
