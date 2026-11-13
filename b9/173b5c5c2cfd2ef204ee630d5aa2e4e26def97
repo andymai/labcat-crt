@@ -1,0 +1,21 @@
+CLAUDE.md
+  s_3f0f1294d8b317::t_674fc5736ed237 7,96
+osv-scanner.toml
+  s_3f0f1294d8b317::t_89a30af5ada1fd 18-20,22,26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b9173b5c5c2cfd2ef204ee630d5aa2e4e26def97",
+  "prompts": {},
+  "sessions": {
+    "s_3f0f1294d8b317": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9a188bf6-7f7c-4f93-badd-64051f15d4c7",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Andy Aragon <hi@andymai.com>"
+    }
+  }
+}
