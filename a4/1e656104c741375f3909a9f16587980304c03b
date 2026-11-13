@@ -1,0 +1,23 @@
+apps/playground/package.json
+  s_3f0f1294d8b317::t_22a9e7a577107c 15
+osv-scanner.toml
+  s_3f0f1294d8b317::t_026310b28beede 15-26
+pnpm-lock.yaml
+  s_3f0f1294d8b317::t_0007dd31d0e8c7 40-41,191-192,194-195,198-199,1134-1135,2420,2423,2427,2431,3210,3214-3215
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a41e656104c741375f3909a9f16587980304c03b",
+  "prompts": {},
+  "sessions": {
+    "s_3f0f1294d8b317": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9a188bf6-7f7c-4f93-badd-64051f15d4c7",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Andy Aragon <hi@andymai.com>"
+    }
+  }
+}
